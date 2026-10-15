@@ -18,14 +18,19 @@
   <!-- ══ Sidebar ══════════════════════════════════════════════ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-badge">
-        <span class="brand-radar"></span>
-        <span class="brand-icon">&#x25C8;</span>
+      <div class="sidebar-brand-inner">
+        <div class="brand-badge">
+          <span class="brand-radar"></span>
+          <span class="brand-icon">&#x25C8;</span>
+        </div>
+        <div class="brand-text">
+          <h1>InsiderLens</h1>
+          <p>Encrypted Threat Intelligence</p>
+        </div>
       </div>
-      <div class="brand-text">
-        <h1>InsiderLens</h1>
-        <p>Encrypted Threat Intelligence</p>
-      </div>
+      <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Toggle sidebar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -210,13 +215,22 @@
         </div>
 
         <div class="tab-pane active" id="tab-cases">
-          <div class="cases-instruction-strip">
-            <div class="instruction-icon">&#x2139;</div>
-            <div class="instruction-text">
-              Cases aggregate related alerts across kill-chain stages (Access &rarr; Staging &rarr; Exfiltration) for correlated insider investigation. Click any case to inspect AI narrative and full evidence dossier.
+          <!-- Split layout: left panel = case list, right = overview -->
+          <div class="cases-split-layout">
+            <div class="cases-list-panel">
+              <div class="cases-list-header">
+                <span class="cases-list-title">Cases</span>
+                <span class="cases-list-count" id="cases-list-count">0</span>
+              </div>
+              <div class="cases-list-items" id="cases-list-items"></div>
+            </div>
+            <div class="cases-center-panel" id="cases-center-panel">
+              <div class="cases-center-empty">
+                <div class="empty-icon">&#x1F5C2;</div>
+                <p>Select a case from the left panel to view its overview. Click again to open the full dossier.</p>
+              </div>
             </div>
           </div>
-          <div id="cases-list" class="cases-grid"></div>
         </div>
 
         <div class="tab-pane" id="tab-all-alerts">
@@ -275,7 +289,14 @@
           <div class="user-picker-meta" id="user-context-meta">
             <!-- Populated dynamically: role, department, HR flags -->
           </div>
+          <button class="admin-lock-btn" id="admin-reveal-btn" title="Admin: Reveal True Identity">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Admin: Reveal Identity
+          </button>
         </div>
+
+        <!-- Admin identity reveal panel -->
+        <div id="admin-identity-panel" style="display:none;" class="mb-24"></div>
 
         <div class="metrics-strip" id="user-metrics"></div>
 
@@ -631,6 +652,31 @@
     </div>
     <div class="modal-body markdown-rendered" id="report-modal-body">
       <!-- Rendered markdown report -->
+    </div>
+  </div>
+</div>
+
+  <!-- ══ Admin Identity Reveal Modal ════════════════════════════ -->
+<div class="admin-modal-overlay" id="admin-pw-modal">
+  <div class="admin-modal-dialog">
+    <div class="admin-modal-header">
+      <div class="admin-lock-icon">&#x1F510;</div>
+      <div class="admin-modal-title">Admin Authentication Required</div>
+      <div class="admin-modal-subtitle">Enter your admin password to reveal the real identity of the selected subject. This action is audited.</div>
+    </div>
+    <div class="admin-modal-body">
+      <div class="admin-form-group">
+        <label class="admin-form-label" for="admin-pw-input">Admin Password</label>
+        <input type="password" id="admin-pw-input" class="admin-password-input" placeholder="Enter password..." autocomplete="off">
+        <span class="admin-error-msg" id="admin-pw-error">Incorrect password. Access denied.</span>
+      </div>
+    </div>
+    <div class="admin-modal-footer">
+      <button class="btn btn-outline" id="admin-pw-cancel">Cancel</button>
+      <button class="btn btn-admin-unlock" id="admin-pw-submit">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Unlock Identity
+      </button>
     </div>
   </div>
 </div>

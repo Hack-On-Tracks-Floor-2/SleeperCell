@@ -175,6 +175,23 @@ function initNavigation() {
   }
 }
 
+// ── Sidebar Toggle ────────────────────────────────────────
+function initSidebarToggle() {
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  if (!sidebar || !toggleBtn) return;
+
+  let isCollapsed = false;
+
+  toggleBtn.addEventListener('click', () => {
+    isCollapsed = !isCollapsed;
+    sidebar.classList.toggle('collapsed', isCollapsed);
+    toggleBtn.title = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    // Trigger chart resize after transition
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 240);
+  });
+}
+
 function switchPage(pageId) {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -326,17 +343,24 @@ function renderRiskBarChart(users) {
   const layout = {
     ...PLOTLY_LAYOUT,
     height: 290,
-    xaxis: { ...PLOTLY_LAYOUT.xaxis, tickangle: -20 },
+    xaxis: {
+      ...PLOTLY_LAYOUT.xaxis,
+      // Must force category type so USER-001..USER-010 strings are NOT parsed as dates
+      type: 'category',
+      tickangle: -20,
+    },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
-      range: [0, 80],
+      range: [0, 90],
       title: { text: 'Risk Score (0-100)', font: { size: 10, color: '#64748b' } },
     },
     shapes: [
       {
         type: 'line',
-        x0: -0.5,
-        x1: sorted.length - 0.5,
+        // Use paper reference so the line spans the full plot width regardless of x values
+        xref: 'paper',
+        x0: 0,
+        x1: 1,
         y0: 60,
         y1: 60,
         line: { color: 'rgba(249, 115, 22, 0.45)', dash: 'dash', width: 1.5 },
@@ -344,7 +368,8 @@ function renderRiskBarChart(users) {
     ],
     annotations: [
       {
-        x: sorted.length - 0.5,
+        xref: 'paper',
+        x: 1,
         y: 60,
         text: 'High Risk (60.0)',
         showarrow: false,
@@ -355,6 +380,8 @@ function renderRiskBarChart(users) {
     ],
   };
 
+  // Purge first to avoid stale Plotly state when the DOM element was hidden (e.g. tab switch)
+  Plotly.purge('chart-risk-bar');
   Plotly.newPlot('chart-risk-bar', [trace], layout, PLOTLY_CONFIG);
 
   const barChartEl = document.getElementById('chart-risk-bar');
@@ -507,63 +534,160 @@ async function loadAlertsAndCases() {
   }
 }
 
+// ── Cases: New split-panel rendering ──────────────────────────────
+let activeCaseId = null;
+
 function renderCasesGrid(cases) {
-  const container = document.getElementById('cases-list');
+  const listContainer = document.getElementById('cases-list-items');
+  const countBadge = document.getElementById('cases-list-count');
+
   if (!cases.length) {
-    showEmpty(container, 'No investigation cases recorded.');
+    listContainer.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.8rem;">No investigation cases recorded.</div>';
     return;
   }
 
-  container.innerHTML = cases.map(c => {
+  if (countBadge) countBadge.textContent = cases.length;
+
+  listContainer.innerHTML = cases.map(c => {
     const sev = (c.severity || 'medium').toLowerCase();
-    const stage = c.max_kill_chain || 3;
-
+    const scoreDisplay = (c.max_score || 0).toFixed(2);
     return `
-      <div class="case-card ${sev}" data-case="${c.case_id}">
-        <div class="case-card-header">
-          <div class="case-id-group">
-            <h4>${c.case_id}</h4>
-            <div class="case-user-label">Subject: <strong class="mono text-white">${c.user_id}</strong> &middot; ${c.alert_count} Alerts</div>
-          </div>
-          ${severityBadge(sev)}
+      <div class="case-list-item" data-case-id="${c.case_id}" id="case-item-${c.case_id}">
+        <div class="case-list-sev-dot ${sev}"></div>
+        <div class="case-list-info">
+          <div class="case-list-id">${c.case_id}</div>
+          <div class="case-list-meta">${c.user_id} &middot; Score: ${scoreDisplay}</div>
         </div>
-
-        <div class="case-card-body">
-          <div class="kill-chain-visual">
-            <div class="kc-step ${stage >= 1 ? 'active' : ''}">
-              <span class="kc-dot"></span>
-              <span>1: Access</span>
-            </div>
-            <span class="kc-arrow">&rarr;</span>
-            <div class="kc-step ${stage >= 2 ? 'active' : ''}">
-              <span class="kc-dot"></span>
-              <span>2: Staging</span>
-            </div>
-            <span class="kc-arrow">&rarr;</span>
-            <div class="kc-step ${stage >= 3 ? 'active' : ''}">
-              <span class="kc-dot"></span>
-              <span>3: Exfil</span>
-            </div>
-          </div>
-
-          <div class="case-meta-row">
-            <span>First: <strong class="mono">${(c.first_seen || '').slice(0, 10)}</strong></span>
-            <span>Last: <strong class="mono">${(c.last_seen || '').slice(0, 10)}</strong></span>
-            <span>Max Score: <strong class="mono text-rose">${(c.max_score || 0).toFixed(2)}</strong></span>
-          </div>
-        </div>
-
-        <div class="case-card-footer">
-          <button class="btn btn-ghost btn-sm" onclick="openCaseModal('${c.case_id}')">
-            <span>Inspect Dossier</span> &rarr;
-          </button>
-          <button class="btn btn-outline btn-sm" onclick="openIncidentReport('${c.case_id}')">
-            View Report
-          </button>
+        <div class="case-list-badge">
+          <span class="severity-badge ${sev}">${sev}</span>
         </div>
       </div>
     `;
   }).join('');
+
+  // Attach click handlers
+  listContainer.querySelectorAll('.case-list-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const caseId = item.getAttribute('data-case-id');
+      if (activeCaseId === caseId) {
+        // Second click: open full case modal dossier
+        openCaseModal(caseId);
+      } else {
+        // First click: show overview in center panel
+        activeCaseId = caseId;
+        listContainer.querySelectorAll('.case-list-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        const caseData = cases.find(c => c.case_id === caseId);
+        renderCaseOverview(caseData);
+      }
+    });
+  });
+}
+
+function renderCaseOverview(c) {
+  const centerPanel = document.getElementById('cases-center-panel');
+  if (!c) return;
+
+  const sev = (c.severity || 'medium').toLowerCase();
+  const stage = c.max_kill_chain || 3;
+  const sevColor = { critical: '#f43f5e', high: '#f97316', medium: '#eab308', low: '#10b981' }[sev] || '#64748b';
+
+  centerPanel.innerHTML = `
+    <div class="case-overview-panel">
+      <div class="case-overview-header">
+        <div class="case-overview-id">
+          <span class="case-overview-label">Investigation Case</span>
+          <span class="case-overview-title">${c.case_id}</span>
+        </div>
+        <div class="case-overview-actions">
+          ${severityBadge(sev)}
+          <button class="btn btn-outline btn-sm" onclick="openIncidentReport('${c.case_id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Report
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openCaseModal('${c.case_id}')">
+            Full Dossier &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats grid -->
+      <div class="case-detail-section">
+        <div class="case-detail-section-title">Case Metrics</div>
+        <div class="case-detail-grid">
+          <div class="case-detail-stat">
+            <span class="case-detail-stat-label">Subject</span>
+            <span class="case-detail-stat-value">${c.user_id}</span>
+          </div>
+          <div class="case-detail-stat">
+            <span class="case-detail-stat-label">Alert Count</span>
+            <span class="case-detail-stat-value">${c.alert_count}</span>
+          </div>
+          <div class="case-detail-stat">
+            <span class="case-detail-stat-label">Max Score</span>
+            <span class="case-detail-stat-value" style="color:${sevColor}">${(c.max_score || 0).toFixed(2)}</span>
+          </div>
+          <div class="case-detail-stat">
+            <span class="case-detail-stat-label">First Seen</span>
+            <span class="case-detail-stat-value">${(c.first_seen || '').slice(0, 10)}</span>
+          </div>
+          <div class="case-detail-stat">
+            <span class="case-detail-stat-label">Last Seen</span>
+            <span class="case-detail-stat-value">${(c.last_seen || '').slice(0, 10)}</span>
+          </div>
+          <div class="case-detail-stat">
+            <span class="case-detail-stat-label">Kill Chain</span>
+            <span class="case-detail-stat-value">Stage ${stage}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kill chain visual -->
+      <div class="case-detail-section">
+        <div class="case-detail-section-title">Kill-Chain Progression</div>
+        <div class="kill-chain-visual">
+          <div class="kc-step ${stage >= 1 ? 'active' : ''}">
+            <span class="kc-dot"></span>
+            <span>1: Initial Access</span>
+          </div>
+          <span class="kc-arrow">&rarr;</span>
+          <div class="kc-step ${stage >= 2 ? 'active' : ''}">
+            <span class="kc-dot"></span>
+            <span>2: Data Staging</span>
+          </div>
+          <span class="kc-arrow">&rarr;</span>
+          <div class="kc-step ${stage >= 3 ? 'active' : ''}">
+            <span class="kc-dot"></span>
+            <span>3: Exfiltration</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI explanation loading section -->
+      <div class="case-detail-section" id="case-ai-summary-${c.case_id}">
+        <div class="case-detail-section-title">AI Threat Summary</div>
+        <div class="loading-inline"><div class="spinner"></div><span>Loading AI analysis...</span></div>
+      </div>
+
+      <div style="text-align:center;padding-top:8px;">
+        <small style="color:var(--text-muted);font-size:0.72rem;">&#x2139; Click this case again in the left panel to open the full investigation dossier</small>
+      </div>
+    </div>
+  `;
+
+  // Async load AI explanation
+  fetchJSON(`/api/explanations/${c.case_id}`).then(exp => {
+    const aiSection = document.getElementById(`case-ai-summary-${c.case_id}`);
+    if (!aiSection) return;
+    aiSection.innerHTML = `
+      <div class="case-detail-section-title">AI Threat Summary</div>
+      <p style="font-size:0.875rem;color:#fff;line-height:1.55;margin-bottom:10px;">${exp.summary || 'Correlated behavioral anomaly detected.'}</p>
+      ${(exp.why_flagged || []).length ? `<ul style="padding-left:18px;font-size:0.8rem;color:var(--text-secondary);">${(exp.why_flagged || []).map(w => `<li style="margin-bottom:4px;">${w}</li>`).join('')}</ul>` : ''}
+    `;
+  }).catch(() => {
+    const aiSection = document.getElementById(`case-ai-summary-${c.case_id}`);
+    if (aiSection) aiSection.innerHTML = '<div class="case-detail-section-title">AI Threat Summary</div><p style="color:var(--text-muted);font-size:0.8rem;">AI analysis not available for this case.</p>';
+  });
 }
 
 function initAlertFilters(alerts) {
@@ -707,6 +831,7 @@ async function loadUserAnalysisPage() {
 
 async function loadUserDetail(userId) {
   if (!userId) return;
+  appState.currentUser = userId;
   try {
     const [detail, hourly] = await Promise.all([
       fetchJSON(`/api/user/${userId}`),
@@ -719,6 +844,14 @@ async function loadUserDetail(userId) {
     renderUserHourly(hourly);
     renderUserZscore(detail.daily_features);
     renderUserTimeline(detail.timeline);
+
+    // Refresh admin identity panel if already unlocked
+    if (adminUnlocked) {
+      const identityPanel = document.getElementById('admin-identity-panel');
+      if (identityPanel && identityPanel.style.display !== 'none') {
+        showIdentityPanel(identityPanel);
+      }
+    }
   } catch (err) {
     showToast(`Failed loading detail for ${userId}: ` + err.message, 'error');
   }
@@ -794,12 +927,15 @@ function renderUserVolume(dailyFeatures, userId) {
 }
 
 function renderUserHourly(hourly) {
+  const el = document.getElementById('chart-user-hourly');
   if (!hourly || !hourly.length) {
-    Plotly.purge('chart-user-hourly');
+    Plotly.purge(el);
+    showEmpty(el, 'No hourly flow data available for this user.');
     return;
   }
 
-  // Proper hour formatting: 00:00, 01:00, ... 23:00
+  // Use integer hour indices (0–23) as x so Plotly treats them as category, not datetime
+  const hourIndices = Array.from({ length: 24 }, (_, i) => i);
   const hourLabels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
   const counts = Array.from({ length: 24 }, (_, i) => {
     const found = hourly.find(h => h.hour === i);
@@ -810,13 +946,15 @@ function renderUserHourly(hourly) {
 
   const trace = {
     type: 'bar',
-    x: hourLabels,
+    x: hourIndices,      // numeric 0-23 so Plotly does NOT parse as timestamps
     y: counts,
+    text: hourLabels,    // shown on hover via customdata
+    customdata: hourLabels,
     marker: {
       color: barColors,
       line: { color: 'rgba(255,255,255,0.1)', width: 1 },
     },
-    hovertemplate: '<b>%{x}</b><br>%{y} flows<extra></extra>',
+    hovertemplate: '<b>%{customdata}</b><br>%{y} flows<extra></extra>',
   };
 
   const layout = {
@@ -824,7 +962,14 @@ function renderUserHourly(hourly) {
     height: 280,
     xaxis: {
       ...PLOTLY_LAYOUT.xaxis,
+      // Force category so 0-23 render as discrete hour labels
+      type: 'category',
+      tickmode: 'array',
+      tickvals: hourIndices,
+      ticktext: hourLabels,
+      tickangle: -45,
       title: { text: 'Hour of Day (24h UTC)', font: { size: 10, color: '#64748b' } },
+      // Show every 3 hours to keep it readable
       dtick: 3,
     },
     yaxis: {
@@ -832,20 +977,24 @@ function renderUserHourly(hourly) {
       title: { text: 'Flows', font: { size: 10, color: '#64748b' } },
     },
     shapes: [
+      // After-hours shade: 19:00–23:00 (indices 19–23)
       {
         type: 'rect',
-        x0: '18:30',
-        x1: '23:30',
+        xref: 'x',
+        x0: 18.5,
+        x1: 23.5,
         y0: 0,
         y1: 1,
         yref: 'paper',
         fillcolor: 'rgba(244, 63, 94, 0.08)',
         line: { width: 0 },
       },
+      // After-hours shade: 00:00–06:00 (indices 0–6)
       {
         type: 'rect',
-        x0: '-0.5',
-        x1: '06:30',
+        xref: 'x',
+        x0: -0.5,
+        x1: 6.5,
         y0: 0,
         y1: 1,
         yref: 'paper',
@@ -855,7 +1004,8 @@ function renderUserHourly(hourly) {
     ],
     annotations: [
       {
-        x: '21:00',
+        xref: 'paper',
+        x: 0.92,
         y: 1,
         yref: 'paper',
         text: 'After-Hours Window',
@@ -865,7 +1015,8 @@ function renderUserHourly(hourly) {
     ],
   };
 
-  Plotly.newPlot('chart-user-hourly', [trace], layout, PLOTLY_CONFIG);
+  Plotly.purge(el);
+  Plotly.newPlot(el, [trace], layout, PLOTLY_CONFIG);
 }
 
 function renderUserZscore(dailyFeatures) {
@@ -1201,29 +1352,51 @@ function renderScoreDistChart(alerts) {
 }
 
 function renderDeptStatsChart(stats) {
-  if (!stats || !stats.length) return;
+  const container = document.getElementById('chart-dept-stats');
+  if (!stats || !stats.length) {
+    showEmpty(container, 'No department statistics available.');
+    return;
+  }
+
+  // Filter out any rows with empty department names to avoid blank category axis entries
+  const filtered = stats.filter(s => s.department && s.department.trim());
+  if (!filtered.length) {
+    showEmpty(container, 'No department statistics available.');
+    return;
+  }
+
+  const deptNames = filtered.map(s => s.department);
 
   const traceAvg = {
     type: 'bar',
     name: 'Mean Outbound (Bytes)',
-    x: stats.map(s => s.department),
-    y: stats.map(s => s.avg_bytes_out),
+    x: deptNames,
+    y: filtered.map(s => s.avg_bytes_out || 0),
     marker: { color: '#3b82f6' },
+    hovertemplate: '<b>%{x}</b><br>Mean: %{y:,.0f} bytes<extra></extra>',
   };
 
   const traceMax = {
     type: 'bar',
     name: 'Max Observed Peak (Bytes)',
-    x: stats.map(s => s.department),
-    y: stats.map(s => s.max_bytes_out),
+    x: deptNames,
+    y: filtered.map(s => s.max_bytes_out || 0),
     marker: { color: '#f97316' },
+    hovertemplate: '<b>%{x}</b><br>Peak: %{y:,.0f} bytes<extra></extra>',
   };
 
   const layout = {
     ...PLOTLY_LAYOUT,
     height: 380,
     barmode: 'group',
-    margin: { t: 24, b: 60, l: 64, r: 24 },
+    margin: { t: 24, b: 80, l: 64, r: 24 },
+    xaxis: {
+      ...PLOTLY_LAYOUT.xaxis,
+      // Force category type so department name strings are NEVER parsed as dates
+      type: 'category',
+      tickangle: -30,
+      tickfont: { size: 10, color: '#94a3b8' },
+    },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
       title: { text: 'Bytes Transmitted', font: { size: 10, color: '#64748b' } },
@@ -1231,7 +1404,8 @@ function renderDeptStatsChart(stats) {
     },
   };
 
-  Plotly.newPlot('chart-dept-stats', [traceAvg, traceMax], layout, PLOTLY_CONFIG);
+  Plotly.purge(container);
+  Plotly.newPlot(container, [traceAvg, traceMax], layout, PLOTLY_CONFIG);
 }
 
 function renderShapChart(shap) {
@@ -1290,7 +1464,7 @@ function renderNetworkTopology(data) {
 
   // Radial concentric positioning: Users on inner ring (radius 0.4), Dst on outer ring (radius 0.85)
   const nodeCoords = {};
-  
+
   users.forEach((u, i) => {
     const angle = (2 * Math.PI * i) / users.length;
     nodeCoords[u] = {
@@ -1604,7 +1778,7 @@ function renderSimForm() {
   `;
 }
 
-window.loadSimPreset = function(name, user, vol, dest, afterHours, dns) {
+window.loadSimPreset = function (name, user, vol, dest, afterHours, dns) {
   document.getElementById('sim-scenario').value = name;
   document.getElementById('sim-user').value = user;
   document.getElementById('sim-volume').value = vol;
@@ -1679,7 +1853,7 @@ async function handleSimulateSubmit(e) {
 // ══════════════════════════════════════════════════════════════
 // 8. MODALS & CASE DOSSIER
 // ══════════════════════════════════════════════════════════════
-window.openCaseModal = async function(caseId) {
+window.openCaseModal = async function (caseId) {
   appState.currentModalCaseId = caseId;
   const modal = document.getElementById('case-modal');
   const title = document.getElementById('case-modal-title');
@@ -1721,7 +1895,7 @@ window.openCaseModal = async function(caseId) {
   }
 };
 
-window.openIncidentReport = async function(caseId) {
+window.openIncidentReport = async function (caseId) {
   const modal = document.getElementById('report-modal');
   const title = document.getElementById('report-modal-title');
   const body = document.getElementById('report-modal-body');
@@ -1779,12 +1953,171 @@ function initModalHandlers() {
   };
 }
 
+// ── Admin Identity Reveal ─────────────────────────────────────
+let adminUnlocked = false;
+let cachedIdentities = null;
+
+function initAdminReveal() {
+  const revealBtn = document.getElementById('admin-reveal-btn');
+  const modal = document.getElementById('admin-pw-modal');
+  const submitBtn = document.getElementById('admin-pw-submit');
+  const cancelBtn = document.getElementById('admin-pw-cancel');
+  const pwInput = document.getElementById('admin-pw-input');
+  const errorMsg = document.getElementById('admin-pw-error');
+  const identityPanel = document.getElementById('admin-identity-panel');
+
+  if (!revealBtn || !modal) return;
+
+  revealBtn.addEventListener('click', () => {
+    if (adminUnlocked) {
+      toggleIdentityPanel(identityPanel);
+    } else {
+      modal.classList.add('open');
+      pwInput.value = '';
+      pwInput.classList.remove('error');
+      errorMsg.classList.remove('visible');
+      setTimeout(() => pwInput.focus(), 200);
+    }
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    modal.classList.remove('open');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('open');
+  });
+
+  async function attemptUnlock() {
+    const password = pwInput.value.trim();
+    if (!password) return;
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Verifying...</span>';
+
+    try {
+      const res = await postJSON('/api/admin/reveal', {
+        password: password,
+        justification: 'Admin dashboard identity reveal',
+        requester: 'SOC Admin',
+      });
+
+      if (res.status === 'authorized') {
+        adminUnlocked = true;
+        cachedIdentities = res.identities;
+        modal.classList.remove('open');
+        revealBtn.classList.add('unlocked');
+        revealBtn.innerHTML = `
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 5-5"></path></svg>
+          Identity Revealed
+        `;
+        showToast('Admin access granted. Identity data unlocked.', 'success');
+        showIdentityPanel(identityPanel);
+      }
+    } catch (err) {
+      pwInput.classList.add('error');
+      errorMsg.classList.add('visible');
+      setTimeout(() => pwInput.classList.remove('error'), 500);
+      showToast('Authentication failed: Invalid password', 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Unlock Identity
+      `;
+    }
+  }
+
+  submitBtn.addEventListener('click', attemptUnlock);
+  pwInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') attemptUnlock();
+  });
+
+  // Update identity when user changes
+  document.getElementById('user-select')?.addEventListener('change', () => {
+    if (adminUnlocked && identityPanel && identityPanel.style.display !== 'none') {
+      showIdentityPanel(identityPanel);
+    }
+  });
+}
+
+function showIdentityPanel(panel) {
+  const userId = appState.currentUser || document.getElementById('user-select')?.value;
+  if (!userId || !cachedIdentities) return;
+
+  const identity = cachedIdentities[userId];
+  if (!identity) {
+    panel.style.display = 'block';
+    panel.innerHTML = `<div class="identity-card"><p style="color:var(--text-muted);font-size:0.8rem;">No identity record found for ${userId}.</p></div>`;
+    return;
+  }
+
+  const initials = identity.name.split(' ').map(n => n[0]).join('');
+  const isHighRisk = identity.hr_status && (
+    identity.hr_status.toLowerCase().includes('resign') ||
+    identity.hr_status.toLowerCase().includes('leave') ||
+    identity.hr_status.toLowerCase().includes('flag')
+  );
+
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="identity-card">
+      ${isHighRisk ? `<div class="identity-warning-badge">&#x26A0; ${identity.hr_status}</div>` : ''}
+      <div class="identity-card-header">
+        <div class="identity-avatar">${initials}</div>
+        <div class="identity-name-group">
+          <div class="identity-real-name">${identity.name}</div>
+          <div class="identity-emp-id">${identity.employee_id} &middot; ${identity.email}</div>
+        </div>
+        ${severityBadge('critical')}
+      </div>
+      <div class="identity-fields">
+        <div class="identity-field">
+          <span class="identity-field-label">Department</span>
+          <span class="identity-field-value">${identity.department}</span>
+        </div>
+        <div class="identity-field">
+          <span class="identity-field-label">Role</span>
+          <span class="identity-field-value">${identity.role}</span>
+        </div>
+        <div class="identity-field">
+          <span class="identity-field-label">IP Address</span>
+          <span class="identity-field-value">${identity.ip}</span>
+        </div>
+        <div class="identity-field">
+          <span class="identity-field-label">Device</span>
+          <span class="identity-field-value">${identity.device}</span>
+        </div>
+        <div class="identity-field">
+          <span class="identity-field-label">Clearance Level</span>
+          <span class="identity-field-value">${identity.clearance}</span>
+        </div>
+        <div class="identity-field">
+          <span class="identity-field-label">HR Status</span>
+          <span class="identity-field-value" style="${isHighRisk ? 'color:var(--severity-critical)' : 'color:var(--severity-low)'}">${identity.hr_status}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleIdentityPanel(panel) {
+  if (!panel) return;
+  if (panel.style.display === 'none' || !panel.style.display) {
+    showIdentityPanel(panel);
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
 // ── Application Bootstrap ────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   initSystemClock();
   initNavigation();
+  initSidebarToggle();
   initTabs();
   initModalHandlers();
+  initAdminReveal();
 
   // Load initial view
   loadOverview();
