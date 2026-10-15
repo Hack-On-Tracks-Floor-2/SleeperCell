@@ -1,87 +1,73 @@
 {
   "CASE-0002": {
-    "summary": "User USER-003 generated network flows that match exfiltration patterns. The ML classifier scored this activity at 100% confidence.",
+    "summary": "User USER-003 uploaded a large amount of data (107,008 bytes) to an external IP (198.51.100.240) after regular working hours, which is unusual and suspicious.",
     "why_flagged": [
-      "Upload-to-download ratio is unusually high, suggesting data leaving the network",
-      "Activity occurred outside normal business hours",
-      "Unusually large volume of data was uploaded"
+      "high upload ratio",
+      "after_hours"
     ],
-    "severity": "critical",
-    "confidence": "High - Based on flow_classifier detector (score: 100%). Content was not inspected; behavioral analysis only.",
+    "severity": "medium",
+    "confidence": "high with brief explanation",
     "recommended_actions": [
-      "Review the user's recent activity timeline in the InsiderLens dashboard",
-      "Escalate to security team lead for further investigation",
-      "Consider temporary upload restriction pending review",
-      "If confirmed, prepare incident report using the one-click report generator"
+      "Review the user's recent activities",
+      "Monitor network traffic for further anomalies"
     ],
-    "kill_chain_assessment": "Exfiltration - Active transfer of data to external destinations detected"
+    "kill_chain_assessment": "3 (Exfiltration)"
   },
   "CASE-0001": {
-    "summary": "User USER-002 generated network flows that match exfiltration patterns. The ML classifier scored this activity at 94% confidence.",
+    "summary": "A user with ID USER-002 has uploaded a large amount of data to an unfamiliar IP address, which is flagged as suspicious.",
     "why_flagged": [
-      "Upload-to-download ratio is unusually high, suggesting data leaving the network",
-      "Data was sent to a destination not previously contacted by this user",
-      "Unusually large volume of data was uploaded"
+      "high upload ratio",
+      "new destination"
     ],
-    "severity": "critical",
-    "confidence": "High - Based on flow_classifier detector (score: 94%). Content was not inspected; behavioral analysis only.",
+    "severity": "medium",
+    "confidence": "high, based on the high score and multiple evidence tags",
     "recommended_actions": [
-      "Review the user's recent activity timeline in the InsiderLens dashboard",
-      "Escalate to security team lead for further investigation",
-      "Consider temporary upload restriction pending review",
-      "Investigate the destination - check domain age, reputation, and category",
-      "If confirmed, prepare incident report using the one-click report generator"
+      "Monitor the user's activity closely",
+      "Verify the legitimacy of the upload with the user"
     ],
-    "kill_chain_assessment": "Exfiltration - Active transfer of data to external destinations detected"
+    "kill_chain_assessment": "3 (Exploitation of Vulnerability)"
   },
   "CASE-0004": {
-    "summary": "User USER-007 generated network flows that match exfiltration patterns. The ML classifier scored this activity at 100% confidence.",
+    "summary": "User USER-007 uploaded a large amount of data (654,130 bytes) to an external IP address (198.51.100.250) after hours, which is highly unusual and suspicious.",
     "why_flagged": [
-      "Upload-to-download ratio is unusually high, suggesting data leaving the network",
-      "Activity occurred outside normal business hours",
-      "Unusually large volume of data was uploaded"
+      "high_upload_ratio",
+      "after_hours",
+      "large_upload"
     ],
-    "severity": "critical",
-    "confidence": "High - Based on flow_classifier detector (score: 100%). Content was not inspected; behavioral analysis only.",
+    "severity": "medium",
+    "confidence": "high with brief explanation: The score of 0.99980229139328 is very close to 1, indicating a high level of confidence in the detection.",
     "recommended_actions": [
-      "Review the user's recent activity timeline in the InsiderLens dashboard",
-      "Escalate to security team lead for further investigation",
-      "Consider temporary upload restriction pending review",
-      "If confirmed, prepare incident report using the one-click report generator"
+      "Review the user's recent activities for any unusual behavior.",
+      "Block or monitor the external IP address temporarily."
     ],
-    "kill_chain_assessment": "Exfiltration - Active transfer of data to external destinations detected"
+    "kill_chain_assessment": "3 (Exfiltration)"
   },
   "CASE-0003": {
-    "summary": "User USER-009 generated network flows that match exfiltration patterns. The ML classifier scored this activity at 100% confidence.",
+    "summary": "User USER-009 uploaded a large amount of data (71,004 bytes) to an external IP (198.51.100.97) outside of normal business hours at 23:50 on 2026-10-12. This activity is flagged due to the high upload ratio and the unusual time of day.",
     "why_flagged": [
-      "Upload-to-download ratio is unusually high, suggesting data leaving the network",
-      "Activity occurred outside normal business hours",
-      "Unusually large volume of data was uploaded"
+      "high_upload_ratio",
+      "after_hours"
     ],
-    "severity": "critical",
-    "confidence": "High - Based on flow_classifier detector (score: 100%). Content was not inspected; behavioral analysis only.",
+    "severity": "medium",
+    "confidence": "medium with brief explanation",
     "recommended_actions": [
-      "Review the user's recent activity timeline in the InsiderLens dashboard",
-      "Escalate to security team lead for further investigation",
-      "Consider temporary upload restriction pending review",
-      "If confirmed, prepare incident report using the one-click report generator"
+      "Review the user's recent activities",
+      "Notify the user's supervisor"
     ],
-    "kill_chain_assessment": "Exfiltration - Active transfer of data to external destinations detected"
+    "kill_chain_assessment": "3"
   },
   "CASE-0005": {
-    "summary": "User USER-010 generated network flows that match exfiltration patterns. The ML classifier scored this activity at 82% confidence.",
+    "summary": "User USER-010 uploaded a large amount of data (68459 bytes) to an external IP (198.51.100.168) at an unusually high upload rate (6.113), which is suspicious.",
     "why_flagged": [
-      "Upload-to-download ratio is unusually high, suggesting data leaving the network",
-      "Unusually large volume of data was uploaded"
+      "high upload ratio",
+      "large upload"
     ],
-    "severity": "critical",
-    "confidence": "High - Based on flow_classifier detector (score: 82%). Content was not inspected; behavioral analysis only.",
+    "severity": "medium",
+    "confidence": "medium with brief explanation: The score of 0.824 suggests a moderate level of suspicion, but the exact context is not provided, making it less certain.",
     "recommended_actions": [
-      "Review the user's recent activity timeline in the InsiderLens dashboard",
-      "Escalate to security team lead for further investigation",
-      "Consider temporary upload restriction pending review",
-      "If confirmed, prepare incident report using the one-click report generator"
+      "Review the user's recent activities for any unusual behavior.",
+      "Monitor the user's network traffic for any further suspicious activity."
     ],
-    "kill_chain_assessment": "Exfiltration - Active transfer of data to external destinations detected"
+    "kill_chain_assessment": "3 (Exfiltration)"
   }
 }

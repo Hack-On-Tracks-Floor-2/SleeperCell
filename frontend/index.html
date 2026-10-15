@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InsiderLens — Privacy-Preserving Insider Threat Platform</title>
+  <meta name="description" content="Enterprise threat detection platform analyzing encrypted network flows without decrypting payloads. Features behavioral anomaly detection, ensemble ML, and GenAI copilot.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <!-- ══ Sidebar ══════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-badge">
+        <span class="brand-radar"></span>
+        <span class="brand-icon">&#x25C8;</span>
+      </div>
+      <div class="brand-text">
+        <h1>InsiderLens</h1>
+        <p>Encrypted Threat Intelligence</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Monitoring</div>
+      <button class="nav-item active" data-page="overview" id="nav-overview">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </span>
+        <span class="nav-text">Overview</span>
+        <span class="nav-pill pill-live" id="nav-pill-alerts">208</span>
+      </button>
+      <button class="nav-item" data-page="alerts" id="nav-alerts">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </span>
+        <span class="nav-text">Alerts &amp; Cases</span>
+        <span class="nav-pill pill-warn" id="nav-pill-cases">8 Cases</span>
+      </button>
+      <button class="nav-item" data-page="users" id="nav-users">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </span>
+        <span class="nav-text">User Analysis</span>
+      </button>
+
+      <div class="nav-section-label">Intelligence</div>
+      <button class="nav-item" data-page="copilot" id="nav-copilot">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><line x1="9" y1="10" x2="15" y2="10"></line></svg>
+        </span>
+        <span class="nav-text">AI Copilot</span>
+        <span class="nav-pill pill-ai">RAG</span>
+      </button>
+      <button class="nav-item" data-page="analytics" id="nav-analytics">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        </span>
+        <span class="nav-text">Analytics</span>
+      </button>
+
+      <div class="nav-section-label">Governance</div>
+      <button class="nav-item" data-page="privacy" id="nav-privacy">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </span>
+        <span class="nav-text">Privacy &amp; Audit</span>
+      </button>
+      <button class="nav-item" data-page="simulator" id="nav-simulator">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+        </span>
+        <span class="nav-text">Threat Simulator</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="privacy-status-card">
+        <div class="privacy-status-header">
+          <span class="pulse-dot"></span>
+          <span class="privacy-title">Zero-Decryption Active</span>
+        </div>
+        <p class="privacy-desc">Metadata &amp; flow timing only. No TLS interception or payload inspection.</p>
+        <div class="privacy-tags">
+          <span class="sec-tag">SHA-256 Hashes</span>
+          <span class="sec-tag">Gated Reveal</span>
+        </div>
+      </div>
+      <div class="sidebar-meta" id="sidebar-meta">
+        Connecting telemetry...
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ Main Content ═════════════════════════════════════════ -->
+  <main class="main">
+    <header class="main-header">
+      <div class="header-left">
+        <div class="breadcrumbs">
+          <span class="bc-root">InsiderLens</span>
+          <span class="bc-sep">/</span>
+          <span class="bc-current" id="header-title">Overview</span>
+        </div>
+        <h2 class="main-header-subtitle" id="header-subtitle">System-wide threat detection and behavior intelligence</h2>
+      </div>
+      <div class="main-header-right">
+        <div class="system-shield">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span>Privacy Strict</span>
+        </div>
+        <div class="status-indicator-pill">
+          <span class="status-indicator-dot"></span>
+          <span class="status-indicator-text">Ensemble Online</span>
+        </div>
+        <span class="header-badge header-time" id="header-time">--:--:--</span>
+        <button class="btn btn-outline btn-sm" id="btn-quick-copilot" title="Ask AI Copilot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Ask Copilot
+        </button>
+      </div>
+    </header>
+
+    <div class="main-content" id="main-content">
+
+      <!-- ═══ Overview Page ════════════════════════════════════ -->
+      <div class="page active" id="page-overview">
+        <div class="metrics-strip" id="overview-metrics"></div>
+
+        <div class="grid-3-2 mb-24">
+          <div class="card card-glow">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">Risk Score by User</span>
+                <span class="card-subtitle">Ensemble behavioral anomaly rating (0 - 100)</span>
+              </div>
+              <div class="card-actions">
+                <span class="badge-subtle">High threshold: 60+</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-risk-bar" class="chart-container"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">Priority Watchlist</span>
+                <span class="card-subtitle">Highest risk users requiring review</span>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="btn-view-all-users">View All &rarr;</button>
+            </div>
+            <div class="card-body flush" id="risk-list"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">Alerts by ML Detector</span>
+                <span class="card-subtitle">Multi-detector correlation breakdown</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-detector-pie" class="chart-container"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">Daily Outbound Volume by User</span>
+                <span class="card-subtitle">Telemetry trend of external bytes transmitted</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-daily-volume" class="chart-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Alerts & Cases Page ══════════════════════════════ -->
+      <div class="page" id="page-alerts">
+        <div class="page-top-bar">
+          <div class="tab-bar">
+            <button class="tab-btn active" data-tab="tab-cases">
+              <span>Investigation Cases</span>
+              <span class="tab-counter" id="tab-counter-cases">8</span>
+            </button>
+            <button class="tab-btn" data-tab="tab-all-alerts">
+              <span>All Telemetry Alerts</span>
+              <span class="tab-counter" id="tab-counter-alerts">208</span>
+            </button>
+          </div>
+          <div class="top-bar-actions">
+            <button class="btn btn-outline btn-sm" id="btn-export-alerts">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="tab-pane active" id="tab-cases">
+          <div class="cases-instruction-strip">
+            <div class="instruction-icon">&#x2139;</div>
+            <div class="instruction-text">
+              Cases aggregate related alerts across kill-chain stages (Access &rarr; Staging &rarr; Exfiltration) for correlated insider investigation. Click any case to inspect AI narrative and full evidence dossier.
+            </div>
+          </div>
+          <div id="cases-list" class="cases-grid"></div>
+        </div>
+
+        <div class="tab-pane" id="tab-all-alerts">
+          <div class="filters-card">
+            <div class="filters-grid" id="alert-filters">
+              <div class="filter-item search-filter">
+                <label>Search Evidence / Tags</label>
+                <div class="search-input-wrapper">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <input type="text" id="alert-search-input" placeholder="e.g. cloud_storage, DNS, upload...">
+                </div>
+              </div>
+              <div class="filter-item">
+                <label>Detector Engine</label>
+                <select id="filter-detector" class="form-select">
+                  <option value="">All Detectors (5 Active)</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label>Monitored User</label>
+                <select id="filter-user" class="form-select">
+                  <option value="">All Monitored Users</option>
+                </select>
+              </div>
+              <div class="filter-item score-filter">
+                <div class="slider-header">
+                  <label>Min Anomaly Score</label>
+                  <span class="slider-val" id="filter-score-val">0.00</span>
+                </div>
+                <input type="range" id="filter-score" min="0" max="1" step="0.05" value="0">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" id="alerts-table-title">Correlated Alerts</span>
+              <span class="badge-subtle" id="alerts-count-badge">Showing 100 alerts</span>
+            </div>
+            <div class="card-body flush">
+              <div class="table-wrapper" id="alerts-table-wrapper"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ User Analysis Page ═══════════════════════════════ -->
+      <div class="page" id="page-users">
+        <div class="user-select-bar card">
+          <div class="user-picker-left">
+            <label for="user-select" class="user-picker-label">Selected Subject:</label>
+            <div class="user-dropdown-container">
+              <select id="user-select" class="user-select-box"></select>
+            </div>
+          </div>
+          <div class="user-picker-meta" id="user-context-meta">
+            <!-- Populated dynamically: role, department, HR flags -->
+          </div>
+        </div>
+
+        <div class="metrics-strip" id="user-metrics"></div>
+
+        <div class="grid-2 mb-24">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">Daily Outbound Volume</span>
+                <span class="card-subtitle">Normal baseline corridor vs observed transfer volume</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-user-volume" class="chart-container"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">Activity by Hour of Day</span>
+                <span class="card-subtitle">Distribution of network activity (Red = After Hours 19:00–07:00)</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-user-hourly" class="chart-container"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-24">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-title">Baseline Deviation Z-Scores</span>
+              <span class="card-subtitle">Statistical deviations against user's historical peer baseline</span>
+            </div>
+            <div class="card-actions">
+              <span class="badge-subtle text-amber">Warning: 2.0σ</span>
+              <span class="badge-subtle text-rose">Critical: 3.0σ</span>
+            </div>
+          </div>
+          <div class="card-body flush">
+            <div id="chart-user-zscore" class="chart-container"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-title">Chronological Alert Sequence</span>
+              <span class="card-subtitle">Time-series audit of suspicious flow detections</span>
+            </div>
+          </div>
+          <div class="card-body flush">
+            <div class="table-wrapper" id="user-timeline-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ AI Copilot Page ══════════════════════════════════ -->
+      <div class="page" id="page-copilot">
+        <div class="copilot-layout">
+          <div class="copilot-sidebar card">
+            <div class="copilot-sidebar-header">
+              <div class="copilot-ai-badge">
+                <span class="ai-pulse"></span>
+                <span>Security Analyst Assistant</span>
+              </div>
+              <h3>Analyst Copilot</h3>
+              <p>Natural-language threat hunting grounded by policy documents and pipeline evidence.</p>
+            </div>
+
+            <div class="prompt-chips-section">
+              <div class="chips-title">Recommended Queries:</div>
+              <div class="prompt-chips">
+                <button class="prompt-chip" data-query="Who is the highest risk user and why were they flagged?">
+                  <span class="chip-icon">&#x26A0;</span> Who is the highest risk user?
+                </button>
+                <button class="prompt-chip" data-query="What happened with USER-003? Summarize their suspicious behavior.">
+                  <span class="chip-icon">&#x1F50E;</span> What happened with USER-003?
+                </button>
+                <button class="prompt-chip" data-query="Show me all open investigation cases and their severity.">
+                  <span class="chip-icon">&#x1F4C2;</span> Show all open cases
+                </button>
+                <button class="prompt-chip" data-query="What is the acceptable use policy for cloud storage uploads like Mega or Dropbox?">
+                  <span class="chip-icon">&#x1F4DC;</span> Cloud storage policy rules
+                </button>
+                <button class="prompt-chip" data-query="How does the XGBoost flow classifier detect exfiltration without decrypting traffic?">
+                  <span class="chip-icon">&#x1F9E0;</span> How does Flow Classifier work?
+                </button>
+                <button class="prompt-chip" data-query="What are the containment steps in our incident response playbook for high-severity data leakage?">
+                  <span class="chip-icon">&#x1F6E1;</span> Incident response playbook steps
+                </button>
+              </div>
+            </div>
+
+            <div class="copilot-rag-info">
+              <div class="rag-info-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span>Grounded Retrieval (RAG)</span>
+              </div>
+              <p>Copilot synthesizes answers from ChromaDB vector index over policies, playbooks, detection methodology, and live cluster state with strict source attribution.</p>
+            </div>
+          </div>
+
+          <div class="copilot-main card">
+            <div class="copilot-messages-header">
+              <div class="copilot-status">
+                <span class="dot-online"></span>
+                <span>Qwen 2.5 7B &middot; Ollama &middot; ChromaDB Vector RAG</span>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="btn-clear-chat" title="Clear conversation history">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Clear Chat
+              </button>
+            </div>
+
+            <div class="chat-messages" id="chat-messages"></div>
+
+            <div class="chat-input-area">
+              <div class="chat-input-wrapper">
+                <textarea id="chat-input" rows="1" placeholder="Ask about security data, suspect behavior, detection algorithms, or IR playbooks... (Press Enter to send)"></textarea>
+                <button class="btn btn-primary" id="chat-send">
+                  <span>Send</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+              </div>
+              <div class="chat-input-hint">
+                <span>Shift + Enter for new line</span>
+                <span>&middot;</span>
+                <span>Privacy Mode: IDs pseudonymized</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Analytics Page ═══════════════════════════════════ -->
+      <div class="page" id="page-analytics">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="tab-detection">Detection Analytics</button>
+          <button class="tab-btn" data-tab="tab-shap">Feature Importance (SHAP)</button>
+          <button class="tab-btn" data-tab="tab-network">Network Topology Graph</button>
+        </div>
+
+        <div class="tab-pane active" id="tab-detection">
+          <div class="grid-2 mb-24">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Alerts per Day by Detector</span>
+                  <span class="card-subtitle">Daily frequency distribution across detection models</span>
+                </div>
+              </div>
+              <div class="card-body flush">
+                <div id="chart-daily-alerts" class="chart-container"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Alert Score Distribution</span>
+                  <span class="card-subtitle">Confidence score spread across detection engines</span>
+                </div>
+              </div>
+              <div class="card-body flush">
+                <div id="chart-score-dist" class="chart-container"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">Department Outbound Behavior Profile</span>
+                <span class="card-subtitle">Mean vs Maximum observed data transfer by organizational department</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-dept-stats" class="chart-container" style="min-height: 380px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-shap">
+          <div class="card mb-20">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">SHAP Feature Attribution (XGBoost Flow Classifier)</span>
+                <span class="card-subtitle">Mean absolute SHAP value representing feature contribution to exfiltration prediction</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-shap" class="chart-container" style="min-height: 480px;"></div>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="feature-card">
+              <div class="feature-title">mean_upload_ratio</div>
+              <p>Ratio of outbound bytes to inbound bytes. Typical web browsing is 1:10; exfiltration reverses this to 50:1+.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-title">bytes_per_sec_out</div>
+              <p>Transmission throughput. High bandwidth sustained bursts correlate strongly with archival/bulk exfiltration.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-title">after_hours_ratio</div>
+              <p>Proportion of network activity conducted outside 07:00-19:00 office hours, a primary risk indicator.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-network">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-title">User-to-Destination Network Topology</span>
+                <span class="card-subtitle">Radial correlation between monitored subjects and external destination endpoints</span>
+              </div>
+              <div class="network-legend">
+                <span class="net-item"><span class="net-dot dot-user"></span> Internal Subject</span>
+                <span class="net-item"><span class="net-dot dot-benign"></span> Normal Destination</span>
+                <span class="net-item"><span class="net-dot dot-suspicious"></span> Exfiltration Target</span>
+              </div>
+            </div>
+            <div class="card-body flush">
+              <div id="chart-network" class="chart-container" style="min-height: 540px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Privacy & Audit Page ═════════════════════════════ -->
+      <div class="page" id="page-privacy">
+        <div class="grid-2">
+          <div>
+            <div class="section-header">
+              <div class="section-title-group">
+                <h3 class="section-title">Privacy-by-Design Architecture</h3>
+                <p class="section-subtitle">Mathematical, technical, and organizational privacy guarantees</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body flush" id="privacy-controls"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-header">
+              <div class="section-title-group">
+                <h3 class="section-title">Gated De-Anonymization Request</h3>
+                <p class="section-subtitle">Identity reveal requires HIGH+ risk and documented justification</p>
+              </div>
+            </div>
+            <div class="card mb-24">
+              <div class="card-body" id="reveal-form-container"></div>
+            </div>
+
+            <div class="section-header">
+              <div class="section-title-group">
+                <h3 class="section-title">Immutable Audit Trail</h3>
+                <p class="section-subtitle">All analyst queries, report views, and reveals are immutably logged</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body flush">
+                <div class="table-wrapper" id="audit-table"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Threat Simulator Page ════════════════════════════ -->
+      <div class="page" id="page-simulator">
+        <div class="card mb-24">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-title">Preconfigured Attack Scenarios</span>
+              <span class="card-subtitle">Click any scenario preset to benchmark detector performance</span>
+            </div>
+          </div>
+          <div class="card-body flush">
+            <div class="table-wrapper" id="scenario-table"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Scenario Parameter Tuning</span>
+              </div>
+              <div class="card-body" id="sim-form-container"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Multi-Detector Engine Evaluation</span>
+              </div>
+              <div class="card-body" id="sim-results">
+                <div class="state-container">
+                  <span class="state-icon">&#x25CE;</span>
+                  <span class="state-text">Select or configure an attack scenario and click "Run Threat Simulation" to evaluate ML detection models.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </main>
+</div>
+
+<!-- ══ Case Detail Modal ═════════════════════════════════════ -->
+<div class="modal-backdrop" id="case-modal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-pretitle">Investigation Dossier</span>
+        <h3 class="modal-title" id="case-modal-title">CASE-0002</h3>
+      </div>
+      <button class="modal-close" id="case-modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="case-modal-body">
+      <!-- Populated dynamically -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btn-modal-view-report">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        Full Incident Report
+      </button>
+      <button class="btn btn-primary" id="btn-modal-investigate-user">Investigate User &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Full Report Viewer Modal ══════════════════════════════ -->
+<div class="modal-backdrop" id="report-modal">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-pretitle">Generated Incident Report</span>
+        <h3 class="modal-title" id="report-modal-title">Incident Report</h3>
+      </div>
+      <div class="modal-header-actions">
+        <button class="btn btn-outline btn-sm" id="btn-copy-report">Copy Markdown</button>
+        <button class="modal-close" id="report-modal-close">&times;</button>
+      </div>
+    </div>
+    <div class="modal-body markdown-rendered" id="report-modal-body">
+      <!-- Rendered markdown report -->
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -31,7 +31,7 @@ def run_pipeline():
     print("=" * 70)
 
     # ── Step 1: Data Loading ───────────────────────────────────────────
-    print("\n[1/6] Loading and enriching data...")
+    print("\n[1/7] Loading and enriching data...")
     pipeline = DataPipeline(str(DATA_DIR))
     raw_data = pipeline.load_all_data()
 
@@ -41,7 +41,7 @@ def run_pipeline():
     print(f"  Scenarios: {list(raw_data['scenarios']['scenario_label'])}")
 
     # ── Step 2: Feature Engineering ────────────────────────────────────
-    print("\n[2/6] Engineering features...")
+    print("\n[2/7] Engineering features...")
     enriched_flows = pipeline.enrich_flows(raw_data["flows"])
     print(f"  Enriched flows with {len(enriched_flows.columns)} features")
 
@@ -54,13 +54,13 @@ def run_pipeline():
     print(f"  Added baseline Z-scores and peer comparisons")
 
     # ── Step 3: Detection ──────────────────────────────────────────────
-    print("\n[3/6] Running detection engine (6 detectors)...")
+    print("\n[3/7] Running detection engine (6 detectors)...")
     engine = DetectionEngine()
     engine.train(enriched_flows, user_daily)
     detector_results = engine.run_all(enriched_flows, user_daily)
 
     # ── Step 4: Risk Scoring & Correlation ─────────────────────────────
-    print("\n[4/6] Computing risk scores and correlating cases...")
+    print("\n[4/7] Computing risk scores and correlating cases...")
     risk_engine = RiskEngine()
     alerts = risk_engine.process_detector_results(detector_results, raw_data["users"])
     print(f"  Generated {len(alerts)} alerts")
@@ -77,7 +77,7 @@ def run_pipeline():
               f"({row['severity'].upper()}) | {row['alert_count']} alerts")
 
     # ── Step 5: GenAI Explanations ─────────────────────────────────────
-    print("\n[5/6] Generating AI-powered explanations...")
+    print("\n[5/7] Generating AI-powered explanations...")
     genai = GenAILayer()
 
     # Generate explanations for top-risk cases
@@ -123,7 +123,7 @@ def run_pipeline():
             print(f"  Saved report: {report_path}")
 
     # ── Step 6: Save Results ───────────────────────────────────────────
-    print("\n[6/6] Saving results...")
+    print("\n[6/7] Saving results...")
 
     results_dir = Path(__file__).parent / "results"
     results_dir.mkdir(exist_ok=True)
@@ -203,6 +203,16 @@ def run_pipeline():
         print("  Saved XGBoost model")
     except Exception as e:
         print(f"  Model save skipped: {e}")
+
+    # ── Step 7: Index Knowledge Base into RAG ─────────────────────────
+    print("\n[7/7] Indexing policy and runtime knowledge base into RAG...")
+    try:
+        from insiderlens.rag import RAGPipeline
+        rag = RAGPipeline()
+        rag.index_documents(force_reindex=True)
+        print("  RAG pipeline indexed and ready for Copilot queries!")
+    except Exception as e:
+        print(f"  RAG indexing skipped: {e}")
 
     print("\n" + "=" * 70)
     print("  Pipeline complete!")

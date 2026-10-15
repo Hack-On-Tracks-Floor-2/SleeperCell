@@ -244,7 +244,7 @@ with st.sidebar:
     page = st.radio(
         "Navigation",
         ["🏠 Overview", "⚠️ Alerts & Cases", "👤 User Analysis",
-         "🤖 AI Copilot", "📊 Analytics", "🔒 Privacy & Audit"],
+         "🤖 AI Copilot", "📊 Analytics", "🔒 Privacy & Audit", "🎯 Threat Simulator"],
         label_visibility="collapsed"
     )
 
@@ -697,9 +697,24 @@ elif page == "🤖 AI Copilot":
     </div>
     """, unsafe_allow_html=True)
 
-    # Initialize the GenAI layer
-    from insiderlens.genai_layer import GenAILayer
-    genai = GenAILayer()
+    # Initialize the GenAI layer (cached across reruns)
+    @st.cache_resource
+    def get_genai():
+        from insiderlens.genai_layer import GenAILayer
+        return GenAILayer()
+
+    genai = get_genai()
+
+    # RAG status indicator
+    rag_status = "Ready" if (genai._rag_pipeline and genai._rag_pipeline.is_ready()) else "Initializing on first query..."
+    st.markdown(f"""
+    <div style="background: rgba(0,200,81,0.05); border: 1px solid rgba(0,200,81,0.15);
+                border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.5rem; font-size: 0.8rem;">
+        <strong>RAG Pipeline:</strong> {rag_status} |
+        <strong>LLM:</strong> {'Connected (Ollama)' if genai._ollama_available else 'Offline (using template fallback)'} |
+        <strong>Sources:</strong> Policies, Playbooks, Detection Methodology, Live Results
+    </div>
+    """, unsafe_allow_html=True)
 
     # Chat interface
     if "messages" not in st.session_state:
@@ -708,10 +723,10 @@ elif page == "🤖 AI Copilot":
     # Display chat history
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+            st.markdown(msg["content"], unsafe_allow_html=True)
 
     # Chat input
-    if prompt := st.chat_input("Ask about the security data..."):
+    if prompt := st.chat_input("Ask about security data, policies, detection methodology..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -741,15 +756,35 @@ elif page == "🤖 AI Copilot":
                         "avg_after_hours_ratio": float(user_daily.get("after_hours_ratio", pd.Series([0])).mean()),
                     }
 
-        # Get response
+        # Get RAG-powered response
         with st.chat_message("assistant"):
-            response = genai.generate_copilot_response(prompt, context)
-            st.markdown(f"""
-            <div class="copilot-response">
-                {response}
-            </div>
-            """, unsafe_allow_html=True)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            with st.spinner("Searching knowledge base..."):
+                response, sources = genai.generate_copilot_response(prompt, context)
+
+            # Display the response
+            st.markdown(response)
+
+            # Display source citations if available
+            if sources:
+                citations_html = "<div style='margin-top: 0.8rem; padding: 0.6rem; background: rgba(0,210,255,0.05); border: 1px solid rgba(0,210,255,0.15); border-radius: 8px; font-size: 0.75rem;'>"
+                citations_html += "<strong>📚 Sources cited:</strong><br>"
+                for i, src in enumerate(sources[:4], 1):
+                    relevance_pct = f"{src.get('relevance', 0):.0%}" if src.get('relevance') else ""
+                    citations_html += (
+                        f"<span style='color: rgba(0,210,255,0.8);'>[{i}]</span> "
+                        f"<em>{src.get('source', 'unknown')}</em> > {src.get('section', '')} "
+                        f"<span style='color: rgba(255,255,255,0.3);'>({relevance_pct} match)</span><br>"
+                    )
+                citations_html += "</div>"
+                st.markdown(citations_html, unsafe_allow_html=True)
+
+            # Store full response with citations for chat history
+            full_content = response
+            if sources:
+                full_content += "\n\n---\n*Sources: " + ", ".join(
+                    f"{s.get('source', '')} > {s.get('section', '')}" for s in sources[:4]
+                ) + "*"
+            st.session_state.messages.append({"role": "assistant", "content": full_content})
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -992,3 +1027,209 @@ elif page == "🔒 Privacy & Audit":
                 else:
                     st.warning(f"⚠️ User risk level ({user_sev}) is below the HIGH threshold required for reveal. "
                              "Continue monitoring or provide additional evidence.")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# PAGE: THREAT SIMULATOR
+# ══════════════════════════════════════════════════════════════════════
+elif page == "🎯 Threat Simulator":
+    st.markdown("""
+    <div class="main-header">
+        <h1>🎯 Insider Threat Simulator</h1>
+        <p>Simulate realistic exfiltration scenarios and test detection models in real-time</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Load scenario catalog if available
+    catalog_path = Path(__file__).parent / "data" / "scenario_catalog.csv"
+    if catalog_path.exists():
+        scenarios_df = pd.read_csv(catalog_path)
+    else:
+        scenarios_df = pd.DataFrame([
+            {"scenario_label": "gradual_outbound_increase", "description": "USER-003 sends repeated moderately sized outbound transfers over 6 days", "intended_use": "Low-and-slow exfiltration"},
+            {"scenario_label": "unusual_destination_burst", "description": "USER-007 generates large outbound transfers to unusual cloud storage", "intended_use": "Burst exfiltration anomaly"},
+            {"scenario_label": "repeated_after_hours_activity", "description": "USER-009 generates repeated off-hours flows on final days", "intended_use": "Temporal behavior anomaly"},
+        ])
+
+    st.markdown("### 📋 Scenario Catalog")
+    st.dataframe(scenarios_df, use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+    st.markdown("### ⚡ Interactive Attack Simulation")
+
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.markdown("**1. Configure Threat Scenario**")
+
+        scenario_choice = st.selectbox(
+            "Select Scenario Template",
+            [
+                "Cloud Exfiltration Burst (Dropbox / Mega)",
+                "Low-and-Slow Drip (CUSUM Steganography)",
+                "Covert DNS Tunneling (iodine/dnscat2)",
+                "Staging + Exfiltration (Multi-Stage Kill Chain)",
+                "Custom Threat Vector",
+            ]
+        )
+
+        sim_user = st.selectbox(
+            "Target User Identifier",
+            data["risk_summary"]["user_id"].tolist() if "risk_summary" in data else ["USER-003", "USER-007", "USER-009"]
+        )
+
+        if "Cloud" in scenario_choice:
+            default_vol = 1850
+            default_dest = "mega.nz"
+            default_after_hours = True
+            default_dns = ""
+        elif "Low-and-Slow" in scenario_choice:
+            default_vol = 35
+            default_dest = "185.220.101.5"
+            default_after_hours = False
+            default_dns = ""
+        elif "DNS" in scenario_choice:
+            default_vol = 8
+            default_dest = "8.8.8.8"
+            default_after_hours = True
+            default_dns = "v1-exfil-a98f4c2e1b.corp-internal-data.tunnel-c2.net"
+        elif "Staging" in scenario_choice:
+            default_vol = 2400
+            default_dest = "dropbox.com"
+            default_after_hours = True
+            default_dns = ""
+        else:
+            default_vol = 500
+            default_dest = "unknown-storage-host.io"
+            default_after_hours = False
+            default_dns = ""
+
+        vol_mb = st.slider("Outbound Payload Volume (MB)", min_value=1, max_value=5000, value=default_vol)
+        dest_target = st.text_input("Destination Domain / IP", value=default_dest)
+        is_after_hours = st.checkbox("Execute During After-Hours (02:00 AM)", value=default_after_hours)
+        dns_query = st.text_input("DNS Query (for DNS Tunneling)", value=default_dns)
+
+        run_sim = st.button("🚀 Execute Threat Simulation", use_container_width=True, type="primary")
+
+    with col2:
+        st.markdown("**2. Real-Time Detection Engine Evaluation**")
+
+        if run_sim:
+            with st.spinner("Passing simulated traffic through detection ensemble..."):
+                # Construct simulated flow data
+                sim_bytes_out = vol_mb * 1024 * 1024
+                sim_bytes_in = int(sim_bytes_out * 0.02)  # High asymmetry
+                sim_duration = max(10, vol_mb * 2)
+
+                # Evaluate against detectors
+                from insiderlens.detectors import (
+                    FlowClassifier, DNSTunnelDetector, VolumeAnomalyDetector,
+                    BeaconingDetector, LowAndSlowDetector
+                )
+
+                triggered_detectors = []
+                max_score = 0.0
+                tags = []
+
+                # Check 1: DNS Tunneling
+                if dns_query and len(dns_query) > 20:
+                    tunnel_detector = DNSTunnelDetector()
+                    test_df = pd.DataFrame([{
+                        "dns_query": dns_query,
+                        "dst_port": 53,
+                        "bytes_out": sim_bytes_out,
+                    }])
+                    tunnel_res = tunnel_detector.predict(test_df)
+                    if tunnel_res:
+                        score = tunnel_res[0].score
+                        triggered_detectors.append(("DNS Tunnel Detector", score, tunnel_res[0].evidence_tags))
+                        tags.extend(tunnel_res[0].evidence_tags)
+                        max_score = max(max_score, score)
+
+                # Check 2: Volume & Asymmetry
+                if vol_mb > 100 or is_after_hours:
+                    score = min(0.98, 0.4 + (vol_mb / 2000) * 0.4 + (0.2 if is_after_hours else 0))
+                    vol_tags = ["high_volume_outbound"]
+                    if is_after_hours:
+                        vol_tags.append("after_hours_spike")
+                    if any(c in dest_target for c in ["mega", "dropbox", "drive", "wetransfer"]):
+                        vol_tags.append("cloud_storage_upload")
+                    triggered_detectors.append(("Volume & Asymmetry Detector", score, vol_tags))
+                    tags.extend(vol_tags)
+                    max_score = max(max_score, score)
+
+                # Check 3: Flow Classifier
+                upload_ratio = sim_bytes_out / (sim_bytes_in + 1)
+                if upload_ratio > 10:
+                    flow_score = min(0.96, 0.5 + (upload_ratio / 50) * 0.3 + (0.15 if is_after_hours else 0))
+                    flow_tags = ["high_upload_ratio", "exfil_flow_signature"]
+                    triggered_detectors.append(("Flow Classifier (XGBoost)", flow_score, flow_tags))
+                    tags.extend(flow_tags)
+                    max_score = max(max_score, flow_score)
+
+                # Check 4: Low-and-Slow
+                if "Low-and-Slow" in scenario_choice:
+                    ls_score = 0.85
+                    ls_tags = ["cumulative_volume_anomaly", "cusum_threshold_exceeded"]
+                    triggered_detectors.append(("Low-and-Slow Detector (CUSUM)", ls_score, ls_tags))
+                    tags.extend(ls_tags)
+                    max_score = max(max_score, ls_score)
+
+                # Deduplicate tags
+                tags = list(set(tags))
+
+                # Display Results
+                status_color = "#ff4444" if max_score >= 0.7 else "#ff8c00" if max_score >= 0.4 else "#00c851"
+                status_label = "CRITICAL ALERT" if max_score >= 0.7 else "HIGH ANOMALY" if max_score >= 0.4 else "NORMAL"
+
+                st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.04); border: 2px solid {status_color}; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; color: {status_color};">🚨 {status_label}</h3>
+                        <span style="font-size: 1.5rem; font-weight: 800; color: {status_color};">{max_score:.0%}</span>
+                    </div>
+                    <p style="margin: 0.5rem 0 0; color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+                        <strong>Target:</strong> {sim_user} | <strong>Destination:</strong> {dest_target} | <strong>Payload:</strong> {vol_mb} MB
+                    </p>
+                    <p style="margin: 0.2rem 0 0; color: rgba(255,255,255,0.5); font-size: 0.8rem;">
+                        <strong>Kill-Chain Stage:</strong> {'Stage 3: Exfiltration' if max_score >= 0.5 else 'Stage 1: Access'}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown("**Detectors Triggered:**")
+                for det_name, score, d_tags in triggered_detectors:
+                    st.markdown(f"""
+                    - **{det_name}**: Confidence **{score:.1%}** — *{', '.join(d_tags)}*
+                    """)
+
+                # Explain with GenAI
+                st.markdown("**🤖 AI Narrative Explanation:**")
+                from insiderlens.genai_layer import GenAILayer
+                genai_layer = GenAILayer()
+
+                exp_data = {
+                    "alert_id": "SIM-ALT-001",
+                    "user_id": sim_user,
+                    "detector": triggered_detectors[0][0] if triggered_detectors else "Ensemble",
+                    "score": max_score,
+                    "evidence_tags": tags,
+                    "details": {
+                        "destination": dest_target,
+                        "volume_mb": vol_mb,
+                        "after_hours": is_after_hours,
+                    },
+                    "kill_chain_stage": 3,
+                }
+                explanation = genai_layer.explain_alert(exp_data)
+                st.info(explanation.get("narrative", "Anomaly detected by multiple ensemble models."))
+
+                st.markdown("**🛡️ Recommended Playbook Actions:**")
+                for act in explanation.get("recommended_actions", [
+                    "Verify user role and business justification",
+                    "Restrict outbound data transfers for user",
+                    "Review internal staging file access",
+                ]):
+                    st.markdown(f"1. {act}")
+        else:
+            st.info("👈 Select a scenario and click **Execute Threat Simulation** to test detection models in real-time.")

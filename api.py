@@ -4,17 +4,45 @@ REST API for the InsiderLens platform.
 """
 import json
 import pandas as pd
+import numpy as np
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict
+import math
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from pydantic import BaseModel
+
+
+def clean_nans(val):
+    if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
+        return None
+    if isinstance(val, dict):
+        return {k: clean_nans(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [clean_nans(v) for v in val]
+    return val
+
+
+class NanSafeJSONResponse(JSONResponse):
+    def render(self, content: any) -> bytes:
+        cleaned = clean_nans(content)
+        return json.dumps(
+            cleaned,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
 
 app = FastAPI(
     title="InsiderLens API",
     description="API for Insider Threat Detection Platform - Detecting data leaks in encrypted traffic",
     version="1.0.0",
+    default_response_class=NanSafeJSONResponse,
 )
 
 app.add_middleware(
@@ -26,8 +54,11 @@ app.add_middleware(
 )
 
 # Data paths
-RESULTS_DIR = Path(__file__).parent / "results"
-REPORTS_DIR = Path(__file__).parent / "reports"
+BASE_DIR = Path(__file__).parent
+RESULTS_DIR = BASE_DIR / "results"
+REPORTS_DIR = BASE_DIR / "reports"
+DATA_DIR = BASE_DIR / "data"
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 
 # ── Pydantic Models ───────────────────────────────────────────────────
@@ -50,7 +81,6 @@ class AlertResponse(BaseModel):
     kill_chain_stage: int
     case_id: str
 
-
 class CopilotRequest(BaseModel):
     question: str
 
@@ -58,6 +88,7 @@ class CopilotRequest(BaseModel):
 class CopilotResponse(BaseModel):
     answer: str
     context_used: List[str]
+    sources: Optional[List[Dict]] = None
 
 
 class RevealRequest(BaseModel):
@@ -69,6 +100,15 @@ class RevealRequest(BaseModel):
 class RevealResponse(BaseModel):
     status: str
     message: str
+
+
+class SimulationRequest(BaseModel):
+    scenario: str
+    user_id: str
+    volume_mb: int
+    destination: str
+    after_hours: bool
+    dns_query: str = ""
 
 
 # ── Helper ─────────────────────────────────────────────────────────────
@@ -94,16 +134,22 @@ def log_audit(actor: str, action: str, target: str, result: str):
     })
 
 
+# ── Static files ───────────────────────────────────────────────────────
+
+# Serve frontend static files
+if FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
+
 # ── Routes ─────────────────────────────────────────────────────────────
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return {
-        "name": "InsiderLens API",
-        "version": "1.0.0",
-        "status": "running",
-        "description": "Detecting insider data leaks in encrypted traffic — without decrypting it",
-    }
+    """Serve the frontend."""
+    index_path = FRONTEND_DIR / "index.html"
+    if index_path.exists():
+        return HTMLResponse(content=index_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>InsiderLens API</h1><p>Frontend not found. Place files in /frontend/</p>")
 
 
 @app.get("/api/risk-summary", response_model=List[RiskSummary])
@@ -209,14 +255,28 @@ def get_report(case_id: str):
     return {"case_id": case_id, "report": report_file.read_text(encoding="utf-8")}
 
 
+# ── GenAI Singleton ───────────────────────────────────────────────────
+
+_genai_instance = None
+
+def get_genai():
+    global _genai_instance
+    if _genai_instance is None:
+        try:
+            from insiderlens.genai_layer import GenAILayer
+            _genai_instance = GenAILayer()
+        except Exception as e:
+            print(f"GenAI init warning: {e}")
+            _genai_instance = None
+    return _genai_instance
+
+
 @app.post("/api/copilot")
 def copilot_query(request: CopilotRequest):
     """AI copilot for natural-language threat hunting."""
     log_audit("API", "Copilot Query", request.question, "Processing")
 
-    from insiderlens.genai_layer import GenAILayer
-    genai = GenAILayer()
-
+    genai = get_genai()
     risk = load_csv("risk_summary.csv")
     cases = load_csv("cases_summary.csv")
 
@@ -226,10 +286,15 @@ def copilot_query(request: CopilotRequest):
         "total_alerts": len(load_csv("alerts.csv")),
     }
 
-    response = genai.generate_copilot_response(request.question, context)
-    log_audit("API", "Copilot Query", request.question, "Success")
+    if genai:
+        answer, sources = genai.generate_copilot_response(request.question, context)
+    else:
+        answer = "GenAI copilot is currently initializing. Please try again in a moment."
+        sources = []
 
-    return CopilotResponse(answer=response, context_used=["risk_summary", "cases"])
+    log_audit("API", "Copilot Query", request.question, "Success")
+    context_used = [f"{s.get('source', '')} > {s.get('section', '')}" for s in sources] if sources else ["knowledge_base"]
+    return CopilotResponse(answer=answer, context_used=context_used, sources=sources)
 
 
 @app.post("/api/reveal")
@@ -286,6 +351,224 @@ def get_stats():
         "detectors_active": alerts["detector"].nunique(),
         "privacy_mode": "active",
         "last_pipeline_run": datetime.now().isoformat(),
+    }
+
+
+# ── New endpoints for enhanced frontend ──────────────────────────────
+
+@app.get("/api/alerts/by-detector")
+def get_alerts_by_detector():
+    """Get alert counts grouped by detector type."""
+    alerts = load_csv("alerts.csv")
+    counts = alerts["detector"].value_counts().to_dict()
+    return counts
+
+
+@app.get("/api/alerts/daily")
+def get_daily_alerts():
+    """Get daily alert counts grouped by detector."""
+    alerts = load_csv("alerts.csv")
+    if "timestamp" not in alerts.columns:
+        return []
+    alerts["date"] = pd.to_datetime(alerts["timestamp"], errors="coerce").dt.strftime("%Y-%m-%d")
+    daily = alerts.groupby(["date", "detector"]).size().reset_index(name="count")
+    return daily.to_dict(orient="records")
+
+
+@app.get("/api/daily-features")
+def get_daily_features(user_id: Optional[str] = None):
+    """Get daily features, optionally filtered by user."""
+    df = load_csv("user_daily_features.csv")
+    if user_id:
+        df = df[df["user_id"] == user_id]
+    # Select only relevant columns to reduce payload
+    cols = ["user_id", "date", "total_flows", "total_bytes_out", "total_bytes_in",
+            "unique_destinations", "after_hours_ratio", "new_destinations",
+            "department", "role", "hr_status",
+            "total_bytes_out_z_self", "total_flows_z_self",
+            "unique_destinations_z_self", "after_hours_ratio_z_self"]
+    available_cols = [c for c in cols if c in df.columns]
+    result = df[available_cols].fillna(0).to_dict(orient="records")
+    return result
+
+
+@app.get("/api/flows/hourly/{user_id}")
+def get_user_hourly_activity(user_id: str):
+    """Get hourly flow distribution for a user."""
+    flows = load_csv("enriched_flows.csv")
+    user_flows = flows[flows["user_id"] == user_id]
+    if "hour" not in user_flows.columns:
+        return []
+    hour_dist = user_flows.groupby("hour").size().reindex(range(24), fill_value=0)
+    return [{"hour": int(h), "count": int(c)} for h, c in hour_dist.items()]
+
+
+@app.get("/api/flows/network-graph")
+def get_network_graph():
+    """Get user-destination network data with category and risk indicators."""
+    flows = load_csv("enriched_flows.csv")
+    user_dest = flows.groupby(["user_id", "dst_ip"]).agg(
+        total_bytes=("bytes_out", "sum"),
+        flow_count=("flow_id", "count"),
+        dst_category=("dst_category", lambda s: s.dropna().iloc[0] if len(s.dropna()) > 0 else "external"),
+        is_suspicious=("scenario_label", lambda s: bool(any(x != "benign" and str(x) != "nan" for x in s))),
+    ).reset_index()
+    top = user_dest.nlargest(60, "total_bytes")
+    return top.to_dict(orient="records")
+
+
+@app.get("/api/shap")
+def get_shap_data():
+    """Get SHAP feature importance data."""
+    shap_path = RESULTS_DIR / "shap_values.npy"
+    names_path = RESULTS_DIR / "shap_feature_names.json"
+    if not shap_path.exists() or not names_path.exists():
+        return {"available": False}
+    
+    shap_values = np.load(shap_path)
+    with open(names_path, encoding="utf-8") as f:
+        features = json.load(f)
+    
+    mean_abs_shap = np.abs(shap_values).mean(axis=0).tolist()
+    importance = sorted(
+        [{"feature": f, "importance": round(v, 6)} for f, v in zip(features, mean_abs_shap)],
+        key=lambda x: x["importance"],
+        reverse=True,
+    )
+    return {"available": True, "features": importance}
+
+
+@app.get("/api/department-stats")
+def get_department_stats():
+    """Get risk statistics grouped by department."""
+    daily = load_csv("user_daily_features.csv")
+    stats = daily.groupby("department").agg(
+        avg_bytes_out=("total_bytes_out", "mean"),
+        max_bytes_out=("total_bytes_out", "max"),
+        avg_after_hours=("after_hours_ratio", "mean"),
+        user_count=("user_id", "nunique"),
+    ).reset_index()
+    return stats.to_dict(orient="records")
+
+
+@app.get("/api/scenarios")
+def get_scenarios():
+    """Get scenario catalog."""
+    catalog_path = DATA_DIR / "scenario_catalog.csv"
+    if catalog_path.exists():
+        df = pd.read_csv(catalog_path)
+        return df.to_dict(orient="records")
+    return []
+
+
+@app.post("/api/simulate")
+def run_simulation(request: SimulationRequest):
+    """Run threat simulation against detection models."""
+    log_audit("API", "Simulation", f"{request.scenario} for {request.user_id}", "Processing")
+
+    sim_bytes_out = request.volume_mb * 1024 * 1024
+    sim_bytes_in = int(sim_bytes_out * 0.02)
+    
+    triggered_detectors = []
+    max_score = 0.0
+    tags = []
+
+    # DNS Tunneling check
+    if request.dns_query and len(request.dns_query) > 20:
+        from insiderlens.detectors import DNSTunnelDetector
+        tunnel_detector = DNSTunnelDetector()
+        test_df = pd.DataFrame([{
+            "dns_query": request.dns_query,
+            "dst_port": 53,
+            "bytes_out": sim_bytes_out,
+        }])
+        tunnel_res = tunnel_detector.predict(test_df)
+        if tunnel_res:
+            score = tunnel_res[0].score
+            triggered_detectors.append({
+                "name": "DNS Tunnel Detector",
+                "score": score,
+                "tags": tunnel_res[0].evidence_tags
+            })
+            tags.extend(tunnel_res[0].evidence_tags)
+            max_score = max(max_score, score)
+
+    # Volume & Asymmetry check
+    if request.volume_mb > 100 or request.after_hours:
+        score = min(0.98, 0.4 + (request.volume_mb / 2000) * 0.4 + (0.2 if request.after_hours else 0))
+        vol_tags = ["high_volume_outbound"]
+        if request.after_hours:
+            vol_tags.append("after_hours_spike")
+        if any(c in request.destination for c in ["mega", "dropbox", "drive", "wetransfer"]):
+            vol_tags.append("cloud_storage_upload")
+        triggered_detectors.append({"name": "Volume & Asymmetry Detector", "score": score, "tags": vol_tags})
+        tags.extend(vol_tags)
+        max_score = max(max_score, score)
+
+    # Flow Classifier check
+    upload_ratio = sim_bytes_out / (sim_bytes_in + 1)
+    if upload_ratio > 10:
+        flow_score = min(0.96, 0.5 + (upload_ratio / 50) * 0.3 + (0.15 if request.after_hours else 0))
+        flow_tags = ["high_upload_ratio", "exfil_flow_signature"]
+        triggered_detectors.append({"name": "Flow Classifier (XGBoost)", "score": flow_score, "tags": flow_tags})
+        tags.extend(flow_tags)
+        max_score = max(max_score, flow_score)
+
+    # Low-and-Slow check
+    if "Low-and-Slow" in request.scenario or "Slow" in request.scenario:
+        ls_score = 0.85
+        ls_tags = ["cumulative_volume_anomaly", "cusum_threshold_exceeded"]
+        triggered_detectors.append({"name": "Low-and-Slow Detector (CUSUM)", "score": ls_score, "tags": ls_tags})
+        tags.extend(ls_tags)
+        max_score = max(max_score, ls_score)
+
+    tags = list(set(tags))
+    status_label = "CRITICAL ALERT" if max_score >= 0.7 else "HIGH ANOMALY" if max_score >= 0.4 else "NORMAL"
+
+    # Get AI explanation
+    narrative = "Anomaly detected by multiple ensemble models."
+    recommended_actions = [
+        "Verify user role and business justification",
+        "Restrict outbound data transfers for user",
+        "Review internal staging file access",
+    ]
+    try:
+        genai_layer = get_genai()
+        if genai_layer:
+            exp_data = {
+                "alert_id": "SIM-ALT-001",
+                "user_id": request.user_id,
+                "detector": triggered_detectors[0]["name"] if triggered_detectors else "Ensemble",
+                "score": max_score,
+                "evidence_tags": tags,
+                "details": {
+                    "destination": request.destination,
+                    "volume_mb": request.volume_mb,
+                    "after_hours": request.after_hours,
+                },
+                "kill_chain_stage": 3,
+            }
+            explanation = genai_layer.explain_alert(exp_data)
+            narrative = explanation.get("narrative", explanation.get("summary", narrative))
+            recommended_actions = explanation.get("recommended_actions", recommended_actions)
+    except Exception:
+        pass
+
+    log_audit("API", "Simulation", f"{request.scenario} for {request.user_id}", "Complete")
+
+    return {
+        "max_score": max_score,
+        "status": status_label,
+        "triggered_detectors": triggered_detectors,
+        "tags": tags,
+        "kill_chain_stage": "Stage 3: Exfiltration" if max_score >= 0.5 else "Stage 1: Access",
+        "narrative": narrative,
+        "recommended_actions": recommended_actions,
+        "target": {
+            "user_id": request.user_id,
+            "destination": request.destination,
+            "volume_mb": request.volume_mb,
+        },
     }
 
 

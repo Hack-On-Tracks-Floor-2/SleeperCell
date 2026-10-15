@@ -1,10 +1,12 @@
 """
 InsiderLens - GenAI Layer
 LLM-powered alert explanation, copilot, and report generation using Ollama.
+Includes RAG pipeline for policy-aware, source-cited copilot responses.
 """
 import json
 import re
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
 
@@ -16,20 +18,60 @@ class GenAILayer:
     3. Incident report generation
     """
 
-    def __init__(self, model_name: str = "qwen2.5:7b"):
-        self.model_name = model_name
+    def __init__(self, model_name: Optional[str] = None):
+        if model_name is None:
+            try:
+                from insiderlens.config import OLLAMA_MODEL
+                self.model_name = OLLAMA_MODEL
+            except Exception:
+                self.model_name = "qwen2.5:7b-instruct"
+        else:
+            self.model_name = model_name
         self._ollama_available = False
         self._check_ollama()
+        self._rag_pipeline = None
+        self._rag_initialized = False
 
     def _check_ollama(self):
-        """Check if Ollama is available."""
+        """Check if Ollama is available and resolve installed model."""
         try:
             import ollama
-            ollama.list()
-            self._ollama_available = True
-        except Exception:
+            res = ollama.list()
+            installed = [
+                m["name"] if isinstance(m, dict) else getattr(m, "model", str(m))
+                for m in (res.get("models", []) if isinstance(res, dict) else getattr(res, "models", []))
+            ]
+            if not installed:
+                self._ollama_available = False
+                return
+
+            # Check exact match
+            if self.model_name in installed:
+                self._ollama_available = True
+                print(f"  [GenAI] Connected to Ollama using model '{self.model_name}'.")
+                return
+
+            # Match without tag or with prefix
+            matches = [m for m in installed if self.model_name.split(":")[0] in m]
+            if matches:
+                self.model_name = matches[0]
+                self._ollama_available = True
+                print(f"  [GenAI] Connected to Ollama using matching model '{self.model_name}'.")
+                return
+
+            # Fallback to first non-embed model
+            generative_models = [m for m in installed if "embed" not in m]
+            if generative_models:
+                self.model_name = generative_models[0]
+                self._ollama_available = True
+                print(f"  [GenAI] Connected to Ollama using available model '{self.model_name}'.")
+                return
+
             self._ollama_available = False
-            print("  [GenAI] Ollama not available. Using template-based fallback.")
+            print("  [GenAI] No suitable generative model found in Ollama.")
+        except Exception as e:
+            self._ollama_available = False
+            print(f"  [GenAI] Ollama not available ({e}). Using template-based fallback.")
 
     def _call_llm(self, prompt: str, system_prompt: str = "") -> str:
         """Call the LLM via Ollama."""
@@ -163,67 +205,222 @@ Respond with a JSON object:
             "kill_chain_assessment": self._kill_chain_description(alert_data.get("kill_chain_stage", 0)),
         }
 
-    def generate_copilot_response(self, question: str, context: Dict) -> str:
+    def _ensure_rag(self):
+        """Lazy-initialize the RAG pipeline on first use."""
+        if self._rag_initialized:
+            return
+        try:
+            from insiderlens.rag import RAGPipeline
+            chroma_dir = Path(__file__).parent.parent / "results" / "chroma_db"
+            chroma_dir.mkdir(parents=True, exist_ok=True)
+            self._rag_pipeline = RAGPipeline(persist_dir=str(chroma_dir))
+            print("  [RAG] Initializing knowledge base...")
+            self._rag_pipeline.index_documents(force_reindex=False)
+            self._rag_initialized = True
+        except Exception as e:
+            print(f"  [RAG] Failed to initialize RAG pipeline: {e}")
+            self._rag_pipeline = None
+            self._rag_initialized = True  # Don't retry
+
+    def generate_copilot_response(self, question: str, context: Dict) -> Tuple[str, List[Dict]]:
         """
-        Answer analyst questions about the data.
-        Translates natural language to insights or safe queries.
+        Answer analyst questions using RAG pipeline.
+        Returns (response_text, list_of_source_citations).
+        Uses retrieved context from ChromaDB to ground the answer.
+        Refuses to answer if no relevant context is found.
         """
-        system_prompt = """You are an analyst copilot for InsiderLens, an insider threat detection platform.
-Answer the analyst's question using ONLY the provided data context.
-Do not invent data. Cite specific evidence. Be concise and actionable.
-All user identifiers are pseudonymized for privacy."""
+        self._ensure_rag()
 
-        context_str = json.dumps(context, indent=2, default=str)
-        prompt = f"""Data Context:
-{context_str}
+        # Step 1: Retrieve relevant context from RAG
+        rag_context = ""
+        sources = []
+        if self._rag_pipeline and self._rag_pipeline.is_ready():
+            rag_context, sources = self._rag_pipeline.build_context_with_citations(
+                question, n_results=6
+            )
 
-Analyst Question: {question}
+        # Step 2: Try LLM with RAG context
+        if self._ollama_available and rag_context:
+            system_prompt = """You are the InsiderLens Analyst Copilot, an AI assistant for a privacy-preserving insider threat detection platform.
 
-Provide a clear, data-backed answer."""
+STRICT RULES:
+1. Answer ONLY using the retrieved context provided below. Do NOT invent or hallucinate information.
+2. If the retrieved context does not contain enough information to answer the question, say: "I don't have enough information in my knowledge base to answer that question. I can help with questions about insider threat detection, our detection methodology, risk scores, alerts, cases, policies, and incident response procedures."
+3. Cite your sources by referencing [Source N] when you use information from a specific context chunk.
+4. Be concise, professional, and actionable.
+5. All user identifiers are pseudonymized for privacy. Never attempt to de-anonymize users.
+6. Focus on security analysis, detection methodology, risk assessment, and incident response guidance."""
 
-        response = self._call_llm(prompt, system_prompt)
+            prompt = f"""RETRIEVED CONTEXT:
+{rag_context}
 
-        if response:
-            return response
+ADDITIONAL LIVE DATA:
+{json.dumps(context, indent=2, default=str)[:2000]}
 
-        # Template fallback for common questions
-        return self._template_copilot(question, context)
+ANALYST QUESTION: {question}
 
-    def _template_copilot(self, question: str, context: Dict) -> str:
-        """Template-based copilot responses."""
+Answer the question using ONLY the retrieved context and live data above. Cite sources with [Source N] references. If you cannot answer from the provided context, say so explicitly."""
+
+            response = self._call_llm(prompt, system_prompt)
+            if response:
+                return response, sources
+
+        # Step 3: Template-based RAG fallback (no LLM)
+        return self._template_copilot_rag(question, context, rag_context, sources)
+
+    def _template_copilot_rag(
+        self, question: str, context: Dict,
+        rag_context: str, sources: List[Dict]
+    ) -> Tuple[str, List[Dict]]:
+        """
+        RAG-aware template-based copilot when LLM is unavailable.
+        Searches retrieved context and live data to answer questions.
+        Returns (response_text, sources).
+        """
         q_lower = question.lower()
-
         risk_summary = context.get("risk_summary", [])
         cases = context.get("cases", [])
 
-        if "highest risk" in q_lower or "most suspicious" in q_lower or "riskiest" in q_lower:
+        # ── User-specific questions ──
+        # Check if the question asks about a specific user
+        queried_user = context.get("queried_user", None)
+        if queried_user:
+            user = queried_user[0] if isinstance(queried_user, list) else queried_user
+            uid = user.get("user_id", "N/A")
+            response = (
+                f"**{uid} Risk Profile:**\n\n"
+                f"- **Risk Score:** {user.get('risk_score', 0):.1f} / 100\n"
+                f"- **Severity:** {user.get('severity', 'unknown').upper()}\n"
+                f"- **Total Alerts:** {user.get('alert_count', 0)}\n"
+                f"- **Cases:** {user.get('case_count', 0)}\n"
+            )
+
+            # Add timeline info if available
+            timeline = context.get("user_timeline", [])
+            if timeline:
+                response += f"\n**Recent Alert Timeline** ({len(timeline)} events):\n"
+                for evt in timeline[:5]:
+                    response += (
+                        f"- [{evt.get('timestamp', 'N/A')}] "
+                        f"{evt.get('detector', 'N/A')} detector "
+                        f"(score: {evt.get('score', 0):.2f}) — "
+                        f"{', '.join(evt.get('evidence', []))}\n"
+                    )
+
+            # Add daily stats if available
+            daily_stats = context.get("user_daily_stats", {})
+            if daily_stats:
+                response += (
+                    f"\n**Daily Behavior Stats:**\n"
+                    f"- Avg daily outbound: {daily_stats.get('avg_bytes_out', 0):,.0f} bytes\n"
+                    f"- Max daily outbound: {daily_stats.get('max_bytes_out', 0):,.0f} bytes\n"
+                    f"- Avg daily flows: {daily_stats.get('avg_flows', 0):.0f}\n"
+                    f"- Avg after-hours ratio: {daily_stats.get('avg_after_hours_ratio', 0):.1%}\n"
+                )
+
+            # Find matching RAG sources
+            user_sources = [s for s in sources if uid.lower() in s.get("section", "").lower()]
+            return response, user_sources if user_sources else sources[:2]
+
+        # ── Common questions with direct data access ──
+        if any(kw in q_lower for kw in ["highest risk", "most suspicious", "riskiest", "top risk"]):
             if risk_summary:
                 top = risk_summary[0] if isinstance(risk_summary, list) else {}
-                return (f"The highest risk user is {top.get('user_id', 'N/A')} with a risk score of "
-                       f"{top.get('risk_score', 0):.1f} ({top.get('severity', 'unknown')} severity), "
-                       f"with {top.get('alert_count', 0)} alerts across {top.get('case_count', 0)} case(s).")
+                response = (
+                    f"The **highest risk user** is **{top.get('user_id', 'N/A')}** "
+                    f"with a risk score of **{top.get('risk_score', 0):.1f}** "
+                    f"({top.get('severity', 'unknown').upper()} severity), "
+                    f"with {top.get('alert_count', 0)} alerts "
+                    f"across {top.get('case_count', 0)} case(s).\n\n"
+                )
+                if len(risk_summary) > 1:
+                    response += "**Other high-risk users:**\n"
+                    for r in risk_summary[1:4]:
+                        response += (
+                            f"- {r.get('user_id', 'N/A')}: "
+                            f"Score {r.get('risk_score', 0):.1f} "
+                            f"({r.get('severity', 'unknown').upper()}) — "
+                            f"{r.get('alert_count', 0)} alerts\n"
+                        )
+                return response, [s for s in sources if "risk" in s.get("section", "").lower()][:2]
 
-        if "how many alerts" in q_lower or "total alerts" in q_lower:
+        if any(kw in q_lower for kw in ["how many alert", "total alert", "alert count"]):
             total = sum(r.get("alert_count", 0) for r in risk_summary) if risk_summary else 0
-            return f"There are {total} total alerts across {len(risk_summary)} users."
+            response = (
+                f"There are **{total} total alerts** across "
+                f"**{len(risk_summary)} monitored users**.\n\n"
+                f"**Detectors used:** {', '.join(context.get('detectors_used', ['N/A']))}"
+            )
+            return response, [s for s in sources if "alert" in s.get("section", "").lower()][:2]
 
-        if "cases" in q_lower:
+        if any(kw in q_lower for kw in ["open cases", "show cases", "list cases", "all cases"]):
             if cases:
-                case_list = "\n".join([
-                    f"  • {c.get('case_id', 'N/A')}: {c.get('user_id', 'N/A')} - "
-                    f"Risk: {c.get('risk_score', 0):.1f} ({c.get('severity', 'unknown')}) - "
-                    f"{c.get('alert_count', 0)} alerts"
-                    for c in (cases[:5] if isinstance(cases, list) else [])
-                ])
-                return f"Open cases:\n{case_list}"
+                response = f"**{len(cases)} Open Cases:**\n\n"
+                for c in (cases[:8] if isinstance(cases, list) else []):
+                    response += (
+                        f"- **{c.get('case_id', 'N/A')}**: {c.get('user_id', 'N/A')} — "
+                        f"Risk: {c.get('risk_score', 0):.1f} ({c.get('severity', 'unknown').upper()}) — "
+                        f"{c.get('alert_count', 0)} alerts\n"
+                    )
+                return response, [s for s in sources if "case" in s.get("section", "").lower()][:2]
 
-        return ("I can help with questions like:\n"
-                "• 'Who is the highest risk user?'\n"
-                "• 'How many alerts were generated?'\n"
-                "• 'Show me all open cases'\n"
-                "• 'Why was USER-003 flagged?'\n"
-                "• 'Compare USER-007 with their peer group'\n"
-                "Please try rephrasing your question.")
+        if any(kw in q_lower for kw in ["how does", "what is", "explain", "how do", "what are",
+                                         "detection", "methodology", "how works"]):
+            # Knowledge questions — use RAG context directly
+            if rag_context:
+                # Extract the most relevant chunk
+                lines = rag_context.split("\n\n---\n\n")
+                if lines:
+                    response = "Based on the InsiderLens knowledge base:\n\n"
+                    for chunk in lines[:3]:
+                        # Clean the source tag
+                        response += chunk + "\n\n"
+                    return response, sources[:3]
+
+        if any(kw in q_lower for kw in ["policy", "acceptable use", "data handling",
+                                         "incident response", "playbook", "containment"]):
+            # Policy questions — use RAG context
+            if rag_context:
+                lines = rag_context.split("\n\n---\n\n")
+                if lines:
+                    response = "From the InsiderLens policy documentation:\n\n"
+                    for chunk in lines[:3]:
+                        response += chunk + "\n\n"
+                    return response, sources[:3]
+
+        if any(kw in q_lower for kw in ["upload", "500", "mb", "volume", "outbound", "bytes"]):
+            if risk_summary:
+                response = "**Users by outbound activity (from risk summary):**\n\n"
+                for r in sorted(risk_summary, key=lambda x: x.get("alert_count", 0), reverse=True):
+                    response += (
+                        f"- **{r.get('user_id', 'N/A')}**: "
+                        f"Risk {r.get('risk_score', 0):.1f}, "
+                        f"{r.get('alert_count', 0)} alerts, "
+                        f"Severity: {r.get('severity', 'N/A').upper()}\n"
+                    )
+                return response, [s for s in sources if "risk" in s.get("section", "").lower()][:2]
+
+        # ── RAG-powered catch-all: try to answer from retrieved context ──
+        if rag_context and sources:
+            lines = rag_context.split("\n\n---\n\n")
+            # Check if the top result is sufficiently relevant
+            if sources and sources[0].get("relevance", 0) >= 0.45:
+                response = "Based on the InsiderLens knowledge base:\n\n"
+                for chunk in lines[:2]:
+                    response += chunk + "\n\n"
+                return response, sources[:2]
+
+        # ── No relevant context found — refuse to answer ──
+        return (
+            "I don't have enough information in my knowledge base to answer that question.\n\n"
+            "I can help with questions about:\n"
+            "- **User risk profiles**: \"Who is the highest risk user?\" or \"What happened with USER-003?\"\n"
+            "- **Alerts & cases**: \"How many alerts were generated?\" or \"Show me all open cases\"\n"
+            "- **Detection methodology**: \"How does the flow classifier work?\" or \"What is DNS tunneling?\"\n"
+            "- **Policies & procedures**: \"What is the incident response process?\" or \"What are the data transfer rules?\"\n"
+            "- **Risk scoring**: \"How is the risk score calculated?\" or \"What are the severity levels?\"\n"
+            "- **Privacy controls**: \"How does pseudonymization work?\" or \"What is gated de-anonymization?\""
+        ), []
 
     def generate_incident_report(self, case_data: Dict, user_timeline: List[Dict]) -> str:
         """Generate a structured incident report in Markdown."""
@@ -232,13 +429,15 @@ Generate a professional incident report based on the case data and timeline.
 Use ONLY the provided data. Do not invent details.
 The report should be suitable for management review."""
 
+        # Cap timeline events for prompt to ensure fast inference and clean report
+        timeline_sample = user_timeline[:15] if len(user_timeline) > 15 else user_timeline
         prompt = f"""Generate an incident report for this case:
 
 CASE DATA:
 {json.dumps(case_data, indent=2, default=str)}
 
-USER TIMELINE:
-{json.dumps(user_timeline, indent=2, default=str)}
+USER TIMELINE ({len(timeline_sample)} key events):
+{json.dumps(timeline_sample, indent=2, default=str)}
 
 Format as a professional Markdown incident report with sections:
 1. Executive Summary

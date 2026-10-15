@@ -67,8 +67,8 @@ WEBMAIL_DOMAINS = [
 ]
 
 # ── GenAI Configuration ──────────────────────────────────────────────
-# Use Ollama with qwen2.5:7b (best balance of quality and speed)
-OLLAMA_MODEL = "qwen2.5:7b"
+# Use Ollama with qwen2.5:7b-instruct (installed on system)
+OLLAMA_MODEL = "qwen2.5:7b-instruct"
 OLLAMA_BASE_URL = "http://localhost:11434"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
