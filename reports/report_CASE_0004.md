@@ -1,7 +1,7 @@
 # InsiderLens Incident Report
 
 **Case ID:** CASE-0004
-**Generated:** 2026-10-15 16:44:19
+**Generated:** 2026-10-15 17:59:20
 **Classification:** CONFIDENTIAL
 
 ---
@@ -57,8 +57,8 @@ The current risk score is **57.0/100**.
 ## 4. Evidence Summary
 
 - **Total Alerts:** 13
-- **Detectors Triggered:** beaconing, user_anomaly, volume_anomaly, low_and_slow, flow_classifier
-- **Evidence Tags:** high_7d_cumulative, high_volume_day, new_destination, cusum_shift_detected, high_upload_ratio, large_upload, after_hours, regular_intervals, extreme_volume_deviation
+- **Detectors Triggered:** low_and_slow, volume_anomaly, user_anomaly, beaconing, flow_classifier
+- **Evidence Tags:** new_destination, extreme_volume_deviation, high_upload_ratio, after_hours, regular_intervals, cusum_shift_detected, high_7d_cumulative, large_upload, high_volume_day
 
 ---
 

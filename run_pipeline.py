@@ -157,14 +157,14 @@ def run_pipeline():
     pd.DataFrame(alerts_data).to_csv(results_dir / "alerts.csv", index=False)
 
     # Save explanations
-    with open(results_dir / "explanations.json", "w") as f:
+    with open(results_dir / "explanations.json", "w", encoding="utf-8") as f:
         json.dump(explanations, f, indent=2, default=str)
 
     # Save user timelines
     timelines = {}
     for user_id in risk_summary["user_id"]:
         timelines[user_id] = risk_engine.get_user_timeline(user_id)
-    with open(results_dir / "timelines.json", "w") as f:
+    with open(results_dir / "timelines.json", "w", encoding="utf-8") as f:
         json.dump(timelines, f, indent=2, default=str)
 
     # Save the risk engine state
@@ -191,7 +191,7 @@ def run_pipeline():
         )
         if shap_values is not None:
             np.save(results_dir / "shap_values.npy", shap_values)
-            with open(results_dir / "shap_feature_names.json", "w") as f:
+            with open(results_dir / "shap_feature_names.json", "w", encoding="utf-8") as f:
                 json.dump(feature_names, f)
             print("  Saved SHAP explainability data")
     except Exception as e:

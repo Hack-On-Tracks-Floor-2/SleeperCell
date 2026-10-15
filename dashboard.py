@@ -201,16 +201,16 @@ def load_results():
         data["enriched_flows"] = pd.read_csv(results_dir / "enriched_flows.csv")
         data["user_daily"] = pd.read_csv(results_dir / "user_daily_features.csv")
 
-        with open(results_dir / "explanations.json") as f:
+        with open(results_dir / "explanations.json", encoding="utf-8") as f:
             data["explanations"] = json.load(f)
-        with open(results_dir / "timelines.json") as f:
+        with open(results_dir / "timelines.json", encoding="utf-8") as f:
             data["timelines"] = json.load(f)
 
         # Load SHAP if available
         shap_path = results_dir / "shap_values.npy"
         if shap_path.exists():
             data["shap_values"] = np.load(shap_path)
-            with open(results_dir / "shap_feature_names.json") as f:
+            with open(results_dir / "shap_feature_names.json", encoding="utf-8") as f:
                 data["shap_features"] = json.load(f)
 
         data["loaded"] = True
@@ -505,7 +505,7 @@ elif page == "⚠️ Alerts & Cases":
                     # Report download
                     report_path = Path(__file__).parent / "reports" / f"report_{case_id.replace('-', '_')}.md"
                     if report_path.exists():
-                        with open(report_path) as f:
+                        with open(report_path, encoding="utf-8", errors="replace") as f:
                             report_content = f.read()
                         st.download_button(
                             "📥 Download Incident Report",

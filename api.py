@@ -162,7 +162,7 @@ def get_user_details(user_id: str):
     timelines = {}
     tl_path = RESULTS_DIR / "timelines.json"
     if tl_path.exists():
-        with open(tl_path) as f:
+        with open(tl_path, encoding="utf-8") as f:
             timelines = json.load(f)
 
     return {
@@ -180,7 +180,7 @@ def get_user_timeline(user_id: str):
     tl_path = RESULTS_DIR / "timelines.json"
     if not tl_path.exists():
         return []
-    with open(tl_path) as f:
+    with open(tl_path, encoding="utf-8") as f:
         timelines = json.load(f)
     return timelines.get(user_id, [])
 
@@ -192,7 +192,7 @@ def get_explanation(case_id: str):
     exp_path = RESULTS_DIR / "explanations.json"
     if not exp_path.exists():
         raise HTTPException(status_code=404, detail="Explanations not generated yet")
-    with open(exp_path) as f:
+    with open(exp_path, encoding="utf-8") as f:
         explanations = json.load(f)
     if case_id not in explanations:
         raise HTTPException(status_code=404, detail=f"No explanation for {case_id}")

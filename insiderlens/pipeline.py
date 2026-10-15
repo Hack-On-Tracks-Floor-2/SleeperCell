@@ -29,7 +29,7 @@ class DataPipeline:
         data["daily_features"] = pd.read_csv(self.data_dir / "daily_features.csv")
         data["scenarios"] = pd.read_csv(self.data_dir / "scenario_catalog.csv")
 
-        with open(self.data_dir / "dataset_metadata.json") as f:
+        with open(self.data_dir / "dataset_metadata.json", encoding="utf-8") as f:
             data["metadata"] = json.load(f)
 
         return data
