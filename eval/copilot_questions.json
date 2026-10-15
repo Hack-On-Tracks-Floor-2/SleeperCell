@@ -1,0 +1,37 @@
+[
+  {
+    "id": "Q-01",
+    "question": "Who else contacted destination megashare-demo.net in the past 14 days?",
+    "expected_tool": "destination_contacts",
+    "expected_params": {"domain": "megashare-demo.net"},
+    "expected_result_summary": "Only U-3386 (Elena Rostova) contacted this domain."
+  },
+  {
+    "id": "Q-02",
+    "question": "Show baseline outbound upload volume for user U-3386 over the 30-day window.",
+    "expected_tool": "user_timeline",
+    "expected_params": {"user_pid": "U-3386", "days": 30},
+    "expected_result_summary": "Mean baseline is 80MB/day with standard deviation 15MB."
+  },
+  {
+    "id": "Q-03",
+    "question": "List all top uploaders who transferred more than 500MB to newly observed destinations.",
+    "expected_tool": "top_uploaders",
+    "expected_params": {"days": 14, "min_mb": 500, "new_dest_only": true},
+    "expected_result_summary": "Returns U-3386 with 1800MB burst."
+  },
+  {
+    "id": "Q-04",
+    "question": "Compare U-3386 outbound bytes against peers in the Finance department.",
+    "expected_tool": "compare_to_peers",
+    "expected_params": {"user_pid": "U-3386", "metric": "bytes_out_total"},
+    "expected_result_summary": "99.9th percentile compared to role peers on day 10."
+  },
+  {
+    "id": "Q-05",
+    "question": "Provide the executive case summary and verified narrative for case C-0001.",
+    "expected_tool": "case_summary",
+    "expected_params": {"case_id": "C-0001"},
+    "expected_result_summary": "Critical risk exfiltration case with 100% verified fidelity."
+  }
+]
