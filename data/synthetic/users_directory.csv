@@ -1,6 +1,0 @@
-user_pid,fake_name,role,dept,email,flags
-U-3386,Elena Rostova,Senior Financial Analyst,Finance,elena.rostova@example.com,notice_period
-U-4190,Marcus Vance,Senior Backend Engineer,Dev,marcus.vance@example.com,privileged
-U-3427,Sarah Jenkins,HR Business Partner,HR,sarah.jenkins@example.com,
-U-8475,David Sterling,Enterprise Account Executive,Sales,david.sterling@example.com,
-U-1320,Aisha Patel,Site Reliability Engineer,Ops,aisha.patel@example.com,privileged

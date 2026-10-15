@@ -1,0 +1,11 @@
+user_id,src_ip,device_id,device_type,mapping_source,valid_from,valid_to
+USER-001,10.0.0.11,LAPTOP-001,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-002,10.0.0.12,LAPTOP-002,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-003,10.0.0.13,LAPTOP-003,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-004,10.0.0.14,LAPTOP-004,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-005,10.0.0.15,LAPTOP-005,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-006,10.0.0.16,LAPTOP-006,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-007,10.0.0.17,LAPTOP-007,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-008,10.0.0.18,LAPTOP-008,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-009,10.0.0.19,LAPTOP-009,laptop,synthetic_lab,2026-10-01T00:00:00,
+USER-010,10.0.0.20,LAPTOP-010,laptop,synthetic_lab,2026-10-01T00:00:00,

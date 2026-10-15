@@ -1,0 +1,1 @@
+["bytes_out", "bytes_in", "upload_ratio", "duration_seconds", "packets_out", "packets_in", "bytes_per_sec_out", "bytes_per_pkt_out", "total_bytes", "is_after_hours", "is_weekend", "has_sni", "dns_query_length", "dns_query_entropy", "is_new_destination"]

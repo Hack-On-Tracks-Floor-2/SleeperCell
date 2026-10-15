@@ -1,5 +1,7 @@
 # Environment and sensitive keys
 .env
+.env.*
+!.env.example
 *.pem
 *.key
 data/identity_map.json
@@ -41,11 +43,30 @@ env/
 *.swo
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Storage / Cache
 *.parquet
-!data/golden_seed.duckdb
-!data/demo_seed.duckdb
-data/*.tmp
 .cache/
 .pytest_cache/
+.ipynb_checkpoints/
+
+# Preserve required DuckDB seed databases
+!data/golden_seed.duckdb
+!data/demo_seed.duckdb
+
+# Temporary files
+data/*.tmp
+*.log
+*.bak
+
+# Runtime-generated state
+results/risk_engine_state.pkl
+
+# Optional generated outputs
+# Uncomment these only if the files can be recreated
+# results/alerts.csv
+# results/cases_summary.csv
+# results/enriched_flows.csv
+# results/explanations.json
+# results/risk_summary.csv

@@ -1,0 +1,12 @@
+{
+  "dataset_name": "Insider Threat Detection Phase 1 Synthetic Dataset",
+  "generated_at_local": "2026-10-15T08:52:47",
+  "date_range": [
+    "2026-10-01",
+    "2026-10-14"
+  ],
+  "synthetic_users": 10,
+  "flow_records": 2900,
+  "daily_feature_records": 140,
+  "note": "All flow records are synthetic. IP ranges use documentation-only addresses. This dataset is not captured from real networks and labels are illustrative."
+}

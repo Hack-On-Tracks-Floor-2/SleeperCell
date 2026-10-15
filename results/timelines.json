@@ -1,0 +1,2349 @@
+{
+  "USER-003": [
+    {
+      "alert_id": "ALT-00198",
+      "timestamp": "2026-10-03",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00161",
+      "timestamp": "2026-10-09",
+      "detector": "user_anomaly",
+      "score": 0.49,
+      "evidence": [
+        "high_volume_day",
+        "high_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00177",
+      "timestamp": "2026-10-09",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00199",
+      "timestamp": "2026-10-09",
+      "detector": "volume_anomaly",
+      "score": 0.7,
+      "evidence": [
+        "extreme_volume_deviation",
+        "unusual_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00002",
+      "timestamp": "2026-10-09 09:40:27",
+      "detector": "flow_classifier",
+      "score": 0.999,
+      "evidence": [
+        "high_upload_ratio",
+        "new_destination",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00003",
+      "timestamp": "2026-10-09 11:29:40",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00004",
+      "timestamp": "2026-10-09 11:46:04",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00005",
+      "timestamp": "2026-10-09 11:49:18",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00006",
+      "timestamp": "2026-10-09 12:11:47",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00007",
+      "timestamp": "2026-10-09 13:13:51",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00008",
+      "timestamp": "2026-10-09 13:35:14",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00009",
+      "timestamp": "2026-10-09 15:12:59",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00010",
+      "timestamp": "2026-10-09 15:13:16",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00011",
+      "timestamp": "2026-10-09 17:25:22",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00012",
+      "timestamp": "2026-10-09 17:49:53",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00013",
+      "timestamp": "2026-10-09 18:45:41",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00014",
+      "timestamp": "2026-10-09 20:18:56",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00015",
+      "timestamp": "2026-10-09 20:42:04",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00016",
+      "timestamp": "2026-10-09 20:53:53",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00017",
+      "timestamp": "2026-10-09 21:34:22",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00018",
+      "timestamp": "2026-10-09 21:36:07",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00019",
+      "timestamp": "2026-10-09 21:38:51",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00020",
+      "timestamp": "2026-10-09 21:41:20",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00021",
+      "timestamp": "2026-10-09 21:57:44",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00022",
+      "timestamp": "2026-10-09 22:31:43",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00023",
+      "timestamp": "2026-10-09 22:39:07",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00024",
+      "timestamp": "2026-10-09 23:07:45",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00025",
+      "timestamp": "2026-10-09 23:18:48",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00026",
+      "timestamp": "2026-10-09 23:21:22",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00027",
+      "timestamp": "2026-10-09 23:42:28",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00028",
+      "timestamp": "2026-10-09 23:47:36",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00029",
+      "timestamp": "2026-10-09 23:59:19",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00178",
+      "timestamp": "2026-10-10",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00030",
+      "timestamp": "2026-10-10 06:47:23",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00031",
+      "timestamp": "2026-10-10 10:15:37",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00032",
+      "timestamp": "2026-10-10 11:21:37",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00033",
+      "timestamp": "2026-10-10 11:56:59",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00034",
+      "timestamp": "2026-10-10 12:36:38",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00035",
+      "timestamp": "2026-10-10 12:49:21",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00036",
+      "timestamp": "2026-10-10 13:52:58",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00037",
+      "timestamp": "2026-10-10 14:59:02",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00038",
+      "timestamp": "2026-10-10 15:53:11",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00039",
+      "timestamp": "2026-10-10 16:36:05",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00040",
+      "timestamp": "2026-10-10 16:55:02",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00041",
+      "timestamp": "2026-10-10 17:09:29",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00042",
+      "timestamp": "2026-10-10 19:21:46",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00043",
+      "timestamp": "2026-10-10 20:03:03",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00044",
+      "timestamp": "2026-10-10 20:08:20",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00045",
+      "timestamp": "2026-10-10 20:23:00",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00046",
+      "timestamp": "2026-10-10 20:45:02",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00047",
+      "timestamp": "2026-10-10 20:53:29",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00048",
+      "timestamp": "2026-10-10 21:15:11",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00049",
+      "timestamp": "2026-10-10 21:28:00",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00050",
+      "timestamp": "2026-10-10 22:35:32",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00051",
+      "timestamp": "2026-10-10 22:52:10",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00052",
+      "timestamp": "2026-10-10 23:14:44",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00162",
+      "timestamp": "2026-10-11",
+      "detector": "user_anomaly",
+      "score": 0.418,
+      "evidence": [
+        "high_volume_day"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00179",
+      "timestamp": "2026-10-11",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00053",
+      "timestamp": "2026-10-11 07:15:17",
+      "detector": "flow_classifier",
+      "score": 0.999,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00054",
+      "timestamp": "2026-10-11 09:59:04",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00055",
+      "timestamp": "2026-10-11 10:50:21",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00056",
+      "timestamp": "2026-10-11 10:52:45",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00057",
+      "timestamp": "2026-10-11 11:26:10",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00058",
+      "timestamp": "2026-10-11 11:47:52",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00059",
+      "timestamp": "2026-10-11 12:06:08",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00060",
+      "timestamp": "2026-10-11 12:20:11",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00061",
+      "timestamp": "2026-10-11 12:46:46",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00062",
+      "timestamp": "2026-10-11 13:22:09",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00063",
+      "timestamp": "2026-10-11 13:28:50",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00064",
+      "timestamp": "2026-10-11 13:40:04",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00065",
+      "timestamp": "2026-10-11 13:48:46",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00066",
+      "timestamp": "2026-10-11 14:12:19",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00067",
+      "timestamp": "2026-10-11 16:54:35",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00068",
+      "timestamp": "2026-10-11 17:09:57",
+      "detector": "flow_classifier",
+      "score": 0.999,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00069",
+      "timestamp": "2026-10-11 18:10:21",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00070",
+      "timestamp": "2026-10-11 18:38:28",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00071",
+      "timestamp": "2026-10-11 18:57:07",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00072",
+      "timestamp": "2026-10-11 20:30:05",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00073",
+      "timestamp": "2026-10-11 21:13:35",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00074",
+      "timestamp": "2026-10-11 22:10:47",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00075",
+      "timestamp": "2026-10-11 22:25:25",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00076",
+      "timestamp": "2026-10-11 23:18:45",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00077",
+      "timestamp": "2026-10-11 23:41:52",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00180",
+      "timestamp": "2026-10-12",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00081",
+      "timestamp": "2026-10-12 08:19:21",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00083",
+      "timestamp": "2026-10-12 09:24:43",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00084",
+      "timestamp": "2026-10-12 09:29:12",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00085",
+      "timestamp": "2026-10-12 10:14:36",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00087",
+      "timestamp": "2026-10-12 12:19:32",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00089",
+      "timestamp": "2026-10-12 14:55:58",
+      "detector": "flow_classifier",
+      "score": 0.995,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00090",
+      "timestamp": "2026-10-12 16:49:07",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00092",
+      "timestamp": "2026-10-12 17:39:06",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00093",
+      "timestamp": "2026-10-12 17:46:16",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00095",
+      "timestamp": "2026-10-12 20:02:45",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00096",
+      "timestamp": "2026-10-12 20:02:53",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00097",
+      "timestamp": "2026-10-12 20:11:37",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00098",
+      "timestamp": "2026-10-12 20:26:50",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00099",
+      "timestamp": "2026-10-12 21:04:03",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00100",
+      "timestamp": "2026-10-12 21:56:40",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00102",
+      "timestamp": "2026-10-12 22:32:38",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00103",
+      "timestamp": "2026-10-12 22:36:13",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00104",
+      "timestamp": "2026-10-12 22:40:16",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00107",
+      "timestamp": "2026-10-12 22:53:14",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00108",
+      "timestamp": "2026-10-12 23:10:18",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00163",
+      "timestamp": "2026-10-13",
+      "detector": "user_anomaly",
+      "score": 0.475,
+      "evidence": [
+        "high_volume_day",
+        "high_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00181",
+      "timestamp": "2026-10-13",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00113",
+      "timestamp": "2026-10-13 10:24:22",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00114",
+      "timestamp": "2026-10-13 10:28:27",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00115",
+      "timestamp": "2026-10-13 11:12:48",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00116",
+      "timestamp": "2026-10-13 11:27:31",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00117",
+      "timestamp": "2026-10-13 12:25:53",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00118",
+      "timestamp": "2026-10-13 15:15:03",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00120",
+      "timestamp": "2026-10-13 16:02:47",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00121",
+      "timestamp": "2026-10-13 16:57:28",
+      "detector": "flow_classifier",
+      "score": 0.999,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00122",
+      "timestamp": "2026-10-13 17:49:52",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00123",
+      "timestamp": "2026-10-13 19:27:44",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00124",
+      "timestamp": "2026-10-13 20:01:52",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00125",
+      "timestamp": "2026-10-13 20:11:26",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00126",
+      "timestamp": "2026-10-13 21:53:16",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00128",
+      "timestamp": "2026-10-13 22:05:16",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00132",
+      "timestamp": "2026-10-13 23:56:57",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00164",
+      "timestamp": "2026-10-14",
+      "detector": "user_anomaly",
+      "score": 0.401,
+      "evidence": [
+        "high_volume_day",
+        "high_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00182",
+      "timestamp": "2026-10-14",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00137",
+      "timestamp": "2026-10-14 06:20:14",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00138",
+      "timestamp": "2026-10-14 08:46:58",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00139",
+      "timestamp": "2026-10-14 09:13:03",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00140",
+      "timestamp": "2026-10-14 10:44:16",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00141",
+      "timestamp": "2026-10-14 11:39:24",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00142",
+      "timestamp": "2026-10-14 11:52:50",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00143",
+      "timestamp": "2026-10-14 13:01:40",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00144",
+      "timestamp": "2026-10-14 13:46:24",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00145",
+      "timestamp": "2026-10-14 14:14:18",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00146",
+      "timestamp": "2026-10-14 16:07:56",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00147",
+      "timestamp": "2026-10-14 16:14:33",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00148",
+      "timestamp": "2026-10-14 16:36:58",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00149",
+      "timestamp": "2026-10-14 16:46:37",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00150",
+      "timestamp": "2026-10-14 18:00:43",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00151",
+      "timestamp": "2026-10-14 20:36:33",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00152",
+      "timestamp": "2026-10-14 20:47:43",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00153",
+      "timestamp": "2026-10-14 20:50:56",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00154",
+      "timestamp": "2026-10-14 20:51:41",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00155",
+      "timestamp": "2026-10-14 21:24:32",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00157",
+      "timestamp": "2026-10-14 23:00:28",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00158",
+      "timestamp": "2026-10-14 23:49:06",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00160",
+      "timestamp": "2026-10-14 23:56:18",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ],
+  "USER-002": [
+    {
+      "alert_id": "ALT-00195",
+      "timestamp": "2026-10-03",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00196",
+      "timestamp": "2026-10-04",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00001",
+      "timestamp": "2026-10-04 17:40:32",
+      "detector": "flow_classifier",
+      "score": 0.936,
+      "evidence": [
+        "high_upload_ratio",
+        "new_destination",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00168",
+      "timestamp": "2026-10-06",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00197",
+      "timestamp": "2026-10-06",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00169",
+      "timestamp": "2026-10-07",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00170",
+      "timestamp": "2026-10-08",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00171",
+      "timestamp": "2026-10-09",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00172",
+      "timestamp": "2026-10-10",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00173",
+      "timestamp": "2026-10-11",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00174",
+      "timestamp": "2026-10-12",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00175",
+      "timestamp": "2026-10-13",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00176",
+      "timestamp": "2026-10-14",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ],
+  "USER-007": [
+    {
+      "alert_id": "ALT-00167",
+      "timestamp": "",
+      "detector": "beaconing",
+      "score": 0.6,
+      "evidence": [
+        "regular_intervals"
+      ],
+      "kill_chain_stage": "Reconnaissance / Access"
+    },
+    {
+      "alert_id": "ALT-00204",
+      "timestamp": "2026-10-05",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00165",
+      "timestamp": "2026-10-12",
+      "detector": "user_anomaly",
+      "score": 0.731,
+      "evidence": [
+        "high_volume_day"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00187",
+      "timestamp": "2026-10-12",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00205",
+      "timestamp": "2026-10-12",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00082",
+      "timestamp": "2026-10-12 08:55:33",
+      "detector": "flow_classifier",
+      "score": 0.999,
+      "evidence": [
+        "high_upload_ratio",
+        "new_destination",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00086",
+      "timestamp": "2026-10-12 11:12:58",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00088",
+      "timestamp": "2026-10-12 14:21:31",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00091",
+      "timestamp": "2026-10-12 17:26:11",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00094",
+      "timestamp": "2026-10-12 18:08:25",
+      "detector": "flow_classifier",
+      "score": 0.982,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00106",
+      "timestamp": "2026-10-12 22:52:06",
+      "detector": "flow_classifier",
+      "score": 1.0,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00188",
+      "timestamp": "2026-10-13",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00189",
+      "timestamp": "2026-10-14",
+      "detector": "low_and_slow",
+      "score": 0.7,
+      "evidence": [
+        "cusum_shift_detected",
+        "high_7d_cumulative"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ],
+  "USER-009": [
+    {
+      "alert_id": "ALT-00206",
+      "timestamp": "2026-10-03",
+      "detector": "volume_anomaly",
+      "score": 0.7,
+      "evidence": [
+        "extreme_volume_deviation",
+        "unusual_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00190",
+      "timestamp": "2026-10-12",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00207",
+      "timestamp": "2026-10-12",
+      "detector": "volume_anomaly",
+      "score": 0.7,
+      "evidence": [
+        "extreme_volume_deviation",
+        "unusual_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00078",
+      "timestamp": "2026-10-12 00:49:49",
+      "detector": "flow_classifier",
+      "score": 0.996,
+      "evidence": [
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00079",
+      "timestamp": "2026-10-12 01:24:08",
+      "detector": "flow_classifier",
+      "score": 0.994,
+      "evidence": [
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00080",
+      "timestamp": "2026-10-12 02:24:44",
+      "detector": "flow_classifier",
+      "score": 0.981,
+      "evidence": [
+        "after_hours",
+        "new_destination"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00101",
+      "timestamp": "2026-10-12 22:29:05",
+      "detector": "flow_classifier",
+      "score": 0.994,
+      "evidence": [
+        "after_hours",
+        "new_destination",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00105",
+      "timestamp": "2026-10-12 22:42:05",
+      "detector": "flow_classifier",
+      "score": 0.99,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "new_destination",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00109",
+      "timestamp": "2026-10-12 23:50:15",
+      "detector": "flow_classifier",
+      "score": 0.999,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00191",
+      "timestamp": "2026-10-13",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00110",
+      "timestamp": "2026-10-13 00:59:50",
+      "detector": "flow_classifier",
+      "score": 0.998,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00111",
+      "timestamp": "2026-10-13 01:56:21",
+      "detector": "flow_classifier",
+      "score": 0.998,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00127",
+      "timestamp": "2026-10-13 22:03:00",
+      "detector": "flow_classifier",
+      "score": 0.997,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00129",
+      "timestamp": "2026-10-13 22:12:45",
+      "detector": "flow_classifier",
+      "score": 0.996,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00130",
+      "timestamp": "2026-10-13 22:26:27",
+      "detector": "flow_classifier",
+      "score": 0.988,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00131",
+      "timestamp": "2026-10-13 23:32:35",
+      "detector": "flow_classifier",
+      "score": 0.998,
+      "evidence": [
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00166",
+      "timestamp": "2026-10-14",
+      "detector": "user_anomaly",
+      "score": 0.443,
+      "evidence": [
+        "high_volume_day",
+        "high_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00192",
+      "timestamp": "2026-10-14",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00133",
+      "timestamp": "2026-10-14 00:46:47",
+      "detector": "flow_classifier",
+      "score": 0.998,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "new_destination",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00134",
+      "timestamp": "2026-10-14 01:05:59",
+      "detector": "flow_classifier",
+      "score": 0.996,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00135",
+      "timestamp": "2026-10-14 01:13:21",
+      "detector": "flow_classifier",
+      "score": 0.995,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "new_destination",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00136",
+      "timestamp": "2026-10-14 02:52:56",
+      "detector": "flow_classifier",
+      "score": 0.998,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00156",
+      "timestamp": "2026-10-14 22:01:59",
+      "detector": "flow_classifier",
+      "score": 0.9,
+      "evidence": [
+        "after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00159",
+      "timestamp": "2026-10-14 23:54:18",
+      "detector": "flow_classifier",
+      "score": 0.997,
+      "evidence": [
+        "high_upload_ratio",
+        "after_hours",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ],
+  "USER-010": [
+    {
+      "alert_id": "ALT-00208",
+      "timestamp": "2026-10-04",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00112",
+      "timestamp": "2026-10-13 09:55:38",
+      "detector": "flow_classifier",
+      "score": 0.45,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00119",
+      "timestamp": "2026-10-13 15:24:04",
+      "detector": "flow_classifier",
+      "score": 0.824,
+      "evidence": [
+        "high_upload_ratio",
+        "large_upload"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ],
+  "USER-004": [
+    {
+      "alert_id": "ALT-00200",
+      "timestamp": "2026-10-06",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00183",
+      "timestamp": "2026-10-11",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00201",
+      "timestamp": "2026-10-11",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00184",
+      "timestamp": "2026-10-12",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00185",
+      "timestamp": "2026-10-13",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00186",
+      "timestamp": "2026-10-14",
+      "detector": "low_and_slow",
+      "score": 0.5,
+      "evidence": [
+        "cusum_shift_detected"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ],
+  "USER-001": [
+    {
+      "alert_id": "ALT-00193",
+      "timestamp": "2026-10-03",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00194",
+      "timestamp": "2026-10-04",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ],
+  "USER-006": [
+    {
+      "alert_id": "ALT-00202",
+      "timestamp": "2026-10-03",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "extreme_volume_deviation"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    },
+    {
+      "alert_id": "ALT-00203",
+      "timestamp": "2026-10-11",
+      "detector": "volume_anomaly",
+      "score": 0.5,
+      "evidence": [
+        "high_volume_deviation",
+        "unusual_after_hours"
+      ],
+      "kill_chain_stage": "Exfiltration"
+    }
+  ]
+}

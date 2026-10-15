@@ -1,0 +1,11 @@
+user_id,role,department,hr_status
+USER-001,Engineer,IT,Active
+USER-002,HR Executive,HR,Active
+USER-003,Finance Analyst,Finance,Active
+USER-004,Engineer,IT,Active
+USER-005,Manager,Operations,Active
+USER-006,Data Analyst,Analytics,Active
+USER-007,IT Support,IT,Active
+USER-008,Sales Executive,Sales,Active
+USER-009,Engineer,IT,On Leave
+USER-010,Contractor,Engineering,Active

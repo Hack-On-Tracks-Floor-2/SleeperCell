@@ -1,0 +1,5 @@
+scenario_label,description,intended_use
+normal,"Ordinary synthetic web, DNS and TLS-like connection activity.",Baseline development and false-positive testing.
+gradual_outbound_increase,USER-003 sends repeated moderately sized outbound transfers to one destination over the final six days.,Prototype low-and-slow behavior; not proof of malicious intent.
+unusual_destination_burst,USER-007 generates a short burst of large outbound transfers to an unusual synthetic destination on day 12.,Test burst anomaly detection and event correlation.
+repeated_after_hours_activity,USER-009 generates repeated after-hours flows on the final three days.,Test temporal behavior features; may be legitimate in real environments.
