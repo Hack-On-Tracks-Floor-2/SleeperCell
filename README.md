@@ -1,4 +1,4 @@
-# 🛡️ InsiderLens
+#  InsiderLens
 
 > **"Encrypted traffic hides content, not behaviour. ML sensors score the behaviour. A GenAI analyst investigates, explains and tests it, without ever decrypting a byte."**
 
@@ -6,7 +6,7 @@ InsiderLens is an enterprise behavioral security platform designed for modern Se
 
 ---
 
-## 📌 Problem Statement & Threat Model
+##  Problem Statement & Threat Model
 
 - **The Blindspot:** Enterprise network traffic is >95% encrypted (TLS 1.3, HTTPS). Traditional Data Loss Prevention (DLP) tools that rely on cleartext pattern matching or intrusive SSL decryption are blind or legally prohibited in privacy-conscious organizations.
 - **The Insider Advantage:** Legitimate insiders already hold credentials, system access, and business justification. Attacks rarely use noisy malware; instead, they abuse authorized channels (SharePoint, AWS, personal clouds, paste sites) during notice periods or off-hours.
@@ -14,7 +14,7 @@ InsiderLens is an enterprise behavioral security platform designed for modern Se
 
 ---
 
-## 🏛️ System Architecture
+##  System Architecture
 
 ```
  L1  SIMULATION (GenAI-Assisted)
@@ -54,7 +54,7 @@ InsiderLens is an enterprise behavioral security platform designed for modern Se
 
 ---
 
-## 🔒 The Trust Boundary
+##  The Trust Boundary
 
 To remain defensible in high-assurance enterprise security environments, InsiderLens enforces hard architectural boundaries between statistical detection and generative reasoning:
 
@@ -68,7 +68,7 @@ To remain defensible in high-assurance enterprise security environments, Insider
 
 ---
 
-## 🤖 Open On-Prem LLM Architecture
+##  Open On-Prem LLM Architecture
 
 InsiderLens is built to run entirely on **self-hosted open-weights models**, ensuring sensitive telemetry never leaves the enterprise boundary:
 
@@ -80,7 +80,7 @@ InsiderLens is built to run entirely on **self-hosted open-weights models**, ens
 
 ---
 
-## 🗂️ Repository Structure
+##  Repository Structure
 
 ```
 Team_SleeperCel/
@@ -122,7 +122,7 @@ Team_SleeperCel/
 
 ---
 
-## 🚀 Quickstart Guide
+##  Quickstart Guide
 
 ### 1. Prerequisites
 - Python 3.11+
@@ -157,25 +157,3 @@ python -m unittest tests/test_push1_contracts.py
 ```
 
 ---
-
-## 📅 Push Plan & Milestone Roadmap
-
-- **✅ PUSH 1 (Current): Foundations & Contracts**
-  - DuckDB 12-table schema committed.
-  - Golden seed database generated (5 personas, 14 days, 1,467 flows, 1 insider attack).
-  - Open on-prem LLM client with caching, retry, and prompt-injection defense.
-  - Destination classifier prototype tested on benchmark domains.
-  - Streamlit SOC dashboard & FastAPI backend operational.
-- **⏳ PUSH 2: Simulated World & First ML**
-  - 60–100 user population with 3 attacks and 3 hard negatives.
-  - XGBoost flow scoring with PR-AUC evaluation.
-  - English-to-YAML scenario compiler.
-- **⏳ PUSH 3: End-to-End Vertical Slice**
-  - CUSUM low-and-slow detector & DNS entropy rule.
-  - Context multiplier ingestion from IT/HR tickets.
-  - Automated faithfulness verifier.
-- **⏳ PUSH 4: GenAI Analyst & Surprisal LM**
-  - Tool-calling investigation agent with bounded priority delta.
-  - PyTorch event-token GRU surprisal model.
-- **⏳ PUSH 5 & FINAL: Feature Freeze & Polish**
-  - Tool-calling Copilot, report export, privacy audit panel, and ablation results.
