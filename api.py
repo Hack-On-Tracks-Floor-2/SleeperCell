@@ -102,6 +102,13 @@ class RevealResponse(BaseModel):
     message: str
 
 
+class AdminRevealRequest(BaseModel):
+    pseudo_id: Optional[str] = None
+    password: str
+    justification: Optional[str] = ""
+    requester: Optional[str] = "SOC Admin"
+
+
 class SimulationRequest(BaseModel):
     scenario: str
     user_id: str
@@ -325,6 +332,173 @@ def request_reveal(request: RevealRequest):
         status="pending",
         message=f"Reveal request submitted for {request.pseudo_id}. Pending Lead approval."
     )
+
+
+USER_IDENTITY_DB = {
+    "USER-001": {
+        "name": "David Sterling",
+        "employee_id": "EMP-8475",
+        "email": "david.sterling@acme-corp.internal",
+        "department": "IT Systems",
+        "role": "Senior DevOps Engineer",
+        "ip": "10.0.0.11",
+        "device": "LAPTOP-001 (MacBook Pro M2)",
+        "clearance": "Level 3 - Secret",
+        "hr_status": "Active"
+    },
+    "USER-002": {
+        "name": "Sarah Jenkins",
+        "employee_id": "EMP-3427",
+        "email": "sarah.jenkins@acme-corp.internal",
+        "department": "Human Resources",
+        "role": "HR Executive",
+        "ip": "10.0.0.12",
+        "device": "LAPTOP-002 (Dell XPS 15)",
+        "clearance": "Level 2 - Confidential",
+        "hr_status": "Active"
+    },
+    "USER-003": {
+        "name": "Elena Rostova",
+        "employee_id": "EMP-3386",
+        "email": "elena.rostova@acme-corp.internal",
+        "department": "Corporate Finance",
+        "role": "Lead Financial Analyst",
+        "ip": "10.0.0.13",
+        "device": "FIN-WS-03 (ThinkPad P16)",
+        "clearance": "Level 4 - Top Secret (Finance/M&A)",
+        "hr_status": "Active (Resignation Notice Submitted)"
+    },
+    "USER-004": {
+        "name": "Marcus Vance",
+        "employee_id": "EMP-4190",
+        "email": "marcus.vance@acme-corp.internal",
+        "department": "IT Infrastructure",
+        "role": "Senior Database Engineer",
+        "ip": "10.0.0.14",
+        "device": "LAPTOP-004 (ThinkPad X1)",
+        "clearance": "Level 3 - Secret",
+        "hr_status": "Active"
+    },
+    "USER-005": {
+        "name": "Aisha Patel",
+        "employee_id": "EMP-1320",
+        "email": "aisha.patel@acme-corp.internal",
+        "department": "Operations",
+        "role": "Operations Director",
+        "ip": "10.0.0.15",
+        "device": "OPS-DIR-01 (MacBook Air)",
+        "clearance": "Level 3 - Secret",
+        "hr_status": "Active"
+    },
+    "USER-006": {
+        "name": "Vikram Rao",
+        "employee_id": "EMP-5820",
+        "email": "vikram.rao@acme-corp.internal",
+        "department": "Analytics & BI",
+        "role": "Data Analyst",
+        "ip": "10.0.0.16",
+        "device": "DATA-WS-06 (Dell Precision)",
+        "clearance": "Level 2 - Confidential",
+        "hr_status": "Active"
+    },
+    "USER-007": {
+        "name": "Kavita Reddy",
+        "employee_id": "EMP-7193",
+        "email": "kavita.reddy@acme-corp.internal",
+        "department": "IT Helpdesk",
+        "role": "IT Support Specialist",
+        "ip": "10.0.0.17",
+        "device": "IT-DESK-07 (HP EliteBook)",
+        "clearance": "Level 2 - Confidential",
+        "hr_status": "Active"
+    },
+    "USER-008": {
+        "name": "Michael Chang",
+        "employee_id": "EMP-6204",
+        "email": "michael.chang@acme-corp.internal",
+        "department": "Enterprise Sales",
+        "role": "Sales Executive",
+        "ip": "10.0.0.18",
+        "device": "SALES-MOB-08 (Surface Pro)",
+        "clearance": "Level 1 - Internal",
+        "hr_status": "Active"
+    },
+    "USER-009": {
+        "name": "Siddharth Nair",
+        "employee_id": "EMP-9142",
+        "email": "siddharth.nair@acme-corp.internal",
+        "department": "IT Infrastructure",
+        "role": "Systems Engineer",
+        "ip": "10.0.0.19",
+        "device": "LAPTOP-009 (MacBook Pro 16)",
+        "clearance": "Level 3 - Secret",
+        "hr_status": "On Leave (Flagged Ingress Anomaly)"
+    },
+    "USER-010": {
+        "name": "Rachel Adams",
+        "employee_id": "EMP-2051",
+        "email": "rachel.adams@contractor.internal",
+        "department": "Engineering Contractors",
+        "role": "Security Consultant",
+        "ip": "10.0.0.20",
+        "device": "EXT-SEC-10 (ThinkPad T14)",
+        "clearance": "Level 2 - Contractor Escorted",
+        "hr_status": "Contract Active"
+    }
+}
+
+VALID_ADMIN_PASSWORDS = {"admin", "admin123", "insiderlens", "password", "root"}
+
+@app.post("/api/admin/reveal")
+def admin_reveal(request: AdminRevealRequest):
+    """Admin-only endpoint to access real identity details protected by password."""
+    import os
+    env_pw = os.getenv("ADMIN_PASSWORD")
+    valid_pws = set(VALID_ADMIN_PASSWORDS)
+    if env_pw:
+        valid_pws.add(env_pw)
+
+    if request.password not in valid_pws:
+        log_audit(request.requester, "Admin Authentication", request.pseudo_id or "System", "Denied: Incorrect Password")
+        raise HTTPException(status_code=401, detail="Invalid admin password.")
+
+    if not request.pseudo_id:
+        log_audit(request.requester, "Admin Session Unlocked", "Full SOC Environment", "Success: Admin Authorized")
+        return {
+            "status": "authorized",
+            "message": "Admin privileges granted.",
+            "identities": USER_IDENTITY_DB
+        }
+
+    pid = request.pseudo_id.upper()
+    identity = USER_IDENTITY_DB.get(pid)
+    if not identity:
+        # Fallback for dynamic users
+        identity = {
+            "name": f"User {pid}",
+            "employee_id": f"EMP-{hash(pid) % 9000 + 1000}",
+            "email": f"{pid.lower()}@acme-corp.internal",
+            "department": "Engineering",
+            "role": "Employee",
+            "ip": "10.0.0.x",
+            "device": "WORKSTATION",
+            "clearance": "Level 2 - Confidential",
+            "hr_status": "Active"
+        }
+
+    justification_str = request.justification.strip() if request.justification else "Direct Admin Access"
+    log_audit(
+        request.requester,
+        "Admin Identity Reveal",
+        f"{pid} -> {identity['name']} ({identity['employee_id']})",
+        f"Success: {justification_str}"
+    )
+    return {
+        "status": "success",
+        "pseudo_id": pid,
+        "identity": identity
+    }
+
 
 
 @app.get("/api/audit-log")
