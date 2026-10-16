@@ -216,7 +216,19 @@ function switchPage(pageId) {
   else if (pageId === 'privacy') loadPrivacyPage();
   else if (pageId === 'simulator') loadSimulatorPage();
 
-  window.dispatchEvent(new Event('resize'));
+  // Trigger chart resize after layout reflow
+  const triggerChartResize = () => {
+    window.dispatchEvent(new Event('resize'));
+    const activePage = document.querySelector('.page.active');
+    if (activePage) {
+      activePage.querySelectorAll('.js-plotly-plot').forEach(chart => {
+        try { Plotly.Plots.resize(chart); } catch (_) {}
+      });
+    }
+  };
+  requestAnimationFrame(triggerChartResize);
+  setTimeout(triggerChartResize, 100);
+  setTimeout(triggerChartResize, 350);
 }
 
 // ── Tab Bars ─────────────────────────────────────────────────
@@ -235,7 +247,14 @@ function initTabs() {
         const targetPane = document.getElementById(targetId);
         if (targetPane) {
           targetPane.classList.add('active');
-          window.dispatchEvent(new Event('resize'));
+          const resizePaneCharts = () => {
+            window.dispatchEvent(new Event('resize'));
+            targetPane.querySelectorAll('.js-plotly-plot').forEach(chart => {
+              try { Plotly.Plots.resize(chart); } catch (_) {}
+            });
+          };
+          requestAnimationFrame(resizePaneCharts);
+          setTimeout(resizePaneCharts, 100);
         }
       });
     });
@@ -845,8 +864,8 @@ async function loadUserDetail(userId) {
     renderUserZscore(detail.daily_features);
     renderUserTimeline(detail.timeline);
 
-    // Refresh admin identity panel if already unlocked
-    if (adminUnlocked) {
+    // Refresh admin identity panel if session is still active
+    if (isAdminSessionActive()) {
       const identityPanel = document.getElementById('admin-identity-panel');
       if (identityPanel && identityPanel.style.display !== 'none') {
         showIdentityPanel(identityPanel);
@@ -1953,123 +1972,224 @@ function initModalHandlers() {
   };
 }
 
-// ── Admin Identity Reveal ─────────────────────────────────────
-let adminUnlocked = false;
-let cachedIdentities = null;
+// ══════════════════════════════════════════════════════════════
+// ADMIN IDENTITY REVEAL  —  Session-Token Architecture
+// ══════════════════════════════════════════════════════════════
+//
+// Security model:
+//   1. Admin enters password ONCE → POST /api/admin/session → server
+//      validates and returns a short-lived opaque token (no PII returned).
+//   2. Each identity reveal is a separate POST /api/admin/reveal with:
+//        { session_token, pseudo_id }  — no password re-transmission.
+//   3. Server returns ONLY the requested user's data per call.
+//   4. Token stored only in JS heap (never localStorage / sessionStorage).
+//   5. revealedIdentities cache lives in JS memory only — cleared on reload.
+//
+let adminSessionToken = null;          // opaque token from /api/admin/session
+let adminSessionExpiry = null;         // client-side expiry mirror (ms epoch)
+const revealedIdentities = new Map();  // pseudo_id → identity (lazy, per-user)
+let chartNamesRevealed = false;        // track chart label toggle state
 
+// ── Core token helpers ────────────────────────────────────────────────
+function isAdminSessionActive() {
+  if (!adminSessionToken) return false;
+  if (adminSessionExpiry && Date.now() > adminSessionExpiry) {
+    adminSessionToken = null;
+    adminSessionExpiry = null;
+    return false;
+  }
+  return true;
+}
+
+async function fetchIdentity(pseudoId) {
+  /** Reveal a single user's identity on demand. Caches result in memory. */
+  if (!isAdminSessionActive()) throw new Error('Session expired');
+  if (revealedIdentities.has(pseudoId)) return revealedIdentities.get(pseudoId);
+
+  const res = await postJSON('/api/admin/reveal', {
+    pseudo_id: pseudoId,
+    session_token: adminSessionToken,
+    justification: 'On-demand admin reveal via SOC dashboard',
+    requester: 'SOC Admin',
+  });
+
+  if (res.status === 'success') {
+    revealedIdentities.set(pseudoId, res.identity);
+    return res.identity;
+  }
+  throw new Error('Reveal failed: ' + (res.detail || 'Unknown error'));
+}
+
+// ── Admin password modal & session creation ────────────────────────────
 function initAdminReveal() {
-  const revealBtn = document.getElementById('admin-reveal-btn');
-  const modal = document.getElementById('admin-pw-modal');
-  const submitBtn = document.getElementById('admin-pw-submit');
-  const cancelBtn = document.getElementById('admin-pw-cancel');
-  const pwInput = document.getElementById('admin-pw-input');
-  const errorMsg = document.getElementById('admin-pw-error');
-  const identityPanel = document.getElementById('admin-identity-panel');
+  const revealBtn  = document.getElementById('admin-reveal-btn');
+  const modal      = document.getElementById('admin-pw-modal');
+  const submitBtn  = document.getElementById('admin-pw-submit');
+  const cancelBtn  = document.getElementById('admin-pw-cancel');
+  const pwInput    = document.getElementById('admin-pw-input');
+  const errorMsg   = document.getElementById('admin-pw-error');
+  const identPanel = document.getElementById('admin-identity-panel');
 
   if (!revealBtn || !modal) return;
 
+  // Click "Admin: Reveal Identity" button
   revealBtn.addEventListener('click', () => {
-    if (adminUnlocked) {
-      toggleIdentityPanel(identityPanel);
+    if (isAdminSessionActive()) {
+      // Session already live — toggle the identity panel for current user
+      toggleIdentityPanel(identPanel);
     } else {
-      modal.classList.add('open');
-      pwInput.value = '';
-      pwInput.classList.remove('error');
-      errorMsg.classList.remove('visible');
-      setTimeout(() => pwInput.focus(), 200);
+      openAdminModal();
     }
   });
 
-  cancelBtn.addEventListener('click', () => {
+  cancelBtn.addEventListener('click', closeAdminModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeAdminModal(); });
+
+  function openAdminModal() {
+    pwInput.value = '';
+    pwInput.classList.remove('error');
+    errorMsg.classList.remove('visible');
+    modal.classList.add('open');
+    setTimeout(() => pwInput.focus(), 200);
+  }
+
+  function closeAdminModal() {
     modal.classList.remove('open');
-  });
+  }
 
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.classList.remove('open');
-  });
-
-  async function attemptUnlock() {
+  // Step 1: Authenticate and get session token — no PII returned here
+  async function attemptAuthenticate() {
     const password = pwInput.value.trim();
     if (!password) return;
 
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span>Verifying...</span>';
+    submitBtn.innerHTML = '<span>Authenticating...</span>';
 
     try {
-      const res = await postJSON('/api/admin/reveal', {
-        password: password,
-        justification: 'Admin dashboard identity reveal',
+      const res = await postJSON('/api/admin/session', {
+        password,
         requester: 'SOC Admin',
       });
 
-      if (res.status === 'authorized') {
-        adminUnlocked = true;
-        cachedIdentities = res.identities;
-        modal.classList.remove('open');
+      if (res.status === 'authorized' && res.session_token) {
+        adminSessionToken = res.session_token;
+        // Mirror the server-side expiry client-side (with a 30s buffer)
+        adminSessionExpiry = Date.now() + (res.expires_in_seconds - 30) * 1000;
+
+        closeAdminModal();
+
         revealBtn.classList.add('unlocked');
         revealBtn.innerHTML = `
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 5-5"></path></svg>
-          Identity Revealed
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 5-5"></path>
+          </svg>
+          Session Active
         `;
-        showToast('Admin access granted. Identity data unlocked.', 'success');
-        showIdentityPanel(identityPanel);
+        showToast('Admin session created. Reveals are gated per-user on demand.', 'success');
+
+        // Show "Reveal Names" button on risk chart
+        const chartRevealBtn = document.getElementById('chart-reveal-names-btn');
+        if (chartRevealBtn) chartRevealBtn.style.display = 'inline-flex';
+
+        // Step 2: Reveal identity for whichever user is currently selected
+        await showIdentityPanel(identPanel);
       }
     } catch (err) {
       pwInput.classList.add('error');
       errorMsg.classList.add('visible');
       setTimeout(() => pwInput.classList.remove('error'), 500);
-      showToast('Authentication failed: Invalid password', 'error');
+      showToast('Authentication failed — check your admin password.', 'error');
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerHTML = `
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
         Unlock Identity
       `;
     }
   }
 
-  submitBtn.addEventListener('click', attemptUnlock);
-  pwInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') attemptUnlock();
-  });
+  submitBtn.addEventListener('click', attemptAuthenticate);
+  pwInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptAuthenticate(); });
 
-  // Update identity when user changes
-  document.getElementById('user-select')?.addEventListener('change', () => {
-    if (adminUnlocked && identityPanel && identityPanel.style.display !== 'none') {
-      showIdentityPanel(identityPanel);
+  // Auto-refresh identity panel when the user dropdown changes
+  document.getElementById('user-select')?.addEventListener('change', async () => {
+    if (isAdminSessionActive() && identPanel && identPanel.style.display !== 'none') {
+      await showIdentityPanel(identPanel);
     }
   });
+
+  // Wire up the "Reveal Names" chart toggle
+  const chartRevealBtn = document.getElementById('chart-reveal-names-btn');
+  if (chartRevealBtn) {
+    chartRevealBtn.addEventListener('click', () => toggleChartNames());
+  }
 }
 
-function showIdentityPanel(panel) {
+// ── Identity panel (User Analysis page) ──────────────────────────────
+async function showIdentityPanel(panel) {
+  if (!panel) return;
   const userId = appState.currentUser || document.getElementById('user-select')?.value;
-  if (!userId || !cachedIdentities) return;
+  if (!userId || !isAdminSessionActive()) return;
 
-  const identity = cachedIdentities[userId];
-  if (!identity) {
-    panel.style.display = 'block';
-    panel.innerHTML = `<div class="identity-card"><p style="color:var(--text-muted);font-size:0.8rem;">No identity record found for ${userId}.</p></div>`;
-    return;
+  // Show loading state
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="identity-card">
+      <div class="loading-inline" style="padding:8px 0;">
+        <div class="spinner"></div>
+        <span>Fetching identity for <strong>${userId}</strong> — single-user reveal…</span>
+      </div>
+    </div>
+  `;
+
+  try {
+    const identity = await fetchIdentity(userId);
+    renderIdentityCard(panel, userId, identity);
+  } catch (err) {
+    panel.innerHTML = `
+      <div class="identity-card">
+        <p style="color:var(--severity-critical);font-size:0.8rem;">
+          ⚠ Reveal failed: ${err.message}. Your session may have expired — please re-authenticate.
+        </p>
+      </div>
+    `;
+    if (err.message.includes('expired') || err.message.includes('401')) {
+      adminSessionToken = null;
+      adminSessionExpiry = null;
+    }
   }
+}
 
-  const initials = identity.name.split(' ').map(n => n[0]).join('');
+function renderIdentityCard(panel, userId, identity) {
+  const initials   = identity.name.split(' ').map(n => n[0]).join('');
   const isHighRisk = identity.hr_status && (
     identity.hr_status.toLowerCase().includes('resign') ||
-    identity.hr_status.toLowerCase().includes('leave') ||
+    identity.hr_status.toLowerCase().includes('leave')  ||
     identity.hr_status.toLowerCase().includes('flag')
   );
 
   panel.style.display = 'block';
   panel.innerHTML = `
     <div class="identity-card">
-      ${isHighRisk ? `<div class="identity-warning-badge">&#x26A0; ${identity.hr_status}</div>` : ''}
+      ${isHighRisk
+        ? `<div class="identity-warning-badge">&#x26A0; ${identity.hr_status}</div>`
+        : ''}
       <div class="identity-card-header">
         <div class="identity-avatar">${initials}</div>
         <div class="identity-name-group">
           <div class="identity-real-name">${identity.name}</div>
           <div class="identity-emp-id">${identity.employee_id} &middot; ${identity.email}</div>
         </div>
-        ${severityBadge('critical')}
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          ${severityBadge('critical')}
+          <span style="font-size:0.68rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">
+            &#x1F512; ${userId}
+          </span>
+        </div>
       </div>
       <div class="identity-fields">
         <div class="identity-field">
@@ -2089,14 +2209,20 @@ function showIdentityPanel(panel) {
           <span class="identity-field-value">${identity.device}</span>
         </div>
         <div class="identity-field">
-          <span class="identity-field-label">Clearance Level</span>
+          <span class="identity-field-label">Clearance</span>
           <span class="identity-field-value">${identity.clearance}</span>
         </div>
         <div class="identity-field">
           <span class="identity-field-label">HR Status</span>
-          <span class="identity-field-value" style="${isHighRisk ? 'color:var(--severity-critical)' : 'color:var(--severity-low)'}">${identity.hr_status}</span>
+          <span class="identity-field-value"
+            style="${isHighRisk ? 'color:var(--severity-critical)' : 'color:var(--severity-low)'}">
+            ${identity.hr_status}
+          </span>
         </div>
       </div>
+      <p style="font-size:0.65rem;color:var(--text-muted);margin-top:10px;text-align:right;">
+        &#x1F4CB; This reveal is logged in the audit trail. Session expires in ~1h.
+      </p>
     </div>
   `;
 }
@@ -2108,6 +2234,150 @@ function toggleIdentityPanel(panel) {
   } else {
     panel.style.display = 'none';
   }
+}
+
+// ── Risk chart: "Reveal Names" toggle ────────────────────────────────
+async function toggleChartNames() {
+  if (!isAdminSessionActive()) {
+    showToast('Start an admin session first to reveal real names on the chart.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('chart-reveal-names-btn');
+  chartNamesRevealed = !chartNamesRevealed;
+
+  if (!chartNamesRevealed) {
+    // Restore pseudonym labels — just re-render the original chart
+    if (btn) {
+      btn.classList.remove('unlocked');
+      btn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        Reveal Names
+      `;
+    }
+    // Re-render chart with original pseudonym labels
+    if (appState.users) renderRiskBarChart(appState.users);
+    return;
+  }
+
+  // Reveal mode ON — fetch real names for all visible bars
+  if (btn) {
+    btn.innerHTML = '<div class="spinner" style="width:12px;height:12px;border-width:1.5px;"></div> Fetching…';
+    btn.disabled = true;
+  }
+
+  const users = appState.users || [];
+  const sorted = [...users].sort((a, b) => b.risk_score - a.risk_score);
+
+  // Fetch identities in parallel — each is an individual gated API call
+  const results = await Promise.allSettled(
+    sorted.map(u => fetchIdentity(u.user_id))
+  );
+
+  // Build a label map: pseudo_id → "First L. (USER-003)"
+  const labelMap = {};
+  sorted.forEach((u, i) => {
+    const result = results[i];
+    if (result.status === 'fulfilled') {
+      const name = result.value.name;
+      // Show abbreviated name to keep bar readable, append pseudonym
+      const parts = name.split(' ');
+      const abbrev = parts.length > 1
+        ? `${parts[0]} ${parts[parts.length - 1][0]}.`
+        : parts[0];
+      labelMap[u.user_id] = `${abbrev}\n(${u.user_id})`;
+    } else {
+      labelMap[u.user_id] = u.user_id;  // fallback to pseudonym
+    }
+  });
+
+  // Re-render with real name labels
+  renderRiskBarChartWithLabels(sorted, labelMap);
+
+  if (btn) {
+    btn.disabled = false;
+    btn.classList.add('unlocked');
+    btn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 5-5"></path>
+      </svg>
+      Hide Names
+    `;
+  }
+  showToast(`${results.filter(r => r.status === 'fulfilled').length} identities revealed on chart.`, 'success');
+}
+
+function renderRiskBarChartWithLabels(sorted, labelMap) {
+  /** Variant of renderRiskBarChart that uses real-name labels on the x-axis. */
+  const colors = sorted.map(u => SEVERITY_COLORS[u.severity] || SEVERITY_COLORS.info);
+
+  const trace = {
+    type: 'bar',
+    x: sorted.map(u => labelMap[u.user_id] || u.user_id),
+    y: sorted.map(u => u.risk_score),
+    marker: {
+      color: colors,
+      line: { color: 'rgba(255,255,255,0.15)', width: 1 },
+    },
+    text: sorted.map(u => `${u.risk_score.toFixed(1)}`),
+    textposition: 'outside',
+    textfont: { family: 'JetBrains Mono, monospace', size: 10, color: '#94a3b8' },
+    customdata: sorted.map(u => [
+      u.user_id,
+      u.severity.toUpperCase(),
+      u.alert_count,
+      (labelMap[u.user_id] || u.user_id).split('\n')[0], // real name line
+    ]),
+    hovertemplate:
+      '<b>%{customdata[3]}</b> <span style="opacity:0.6">%{customdata[0]}</span>' +
+      '<br>Risk Score: %{y:.1f}' +
+      '<br>Severity: %{customdata[1]}' +
+      '<br>Alerts: %{customdata[2]}' +
+      '<extra></extra>',
+  };
+
+  const layout = {
+    ...PLOTLY_LAYOUT,
+    height: 290,
+    xaxis: {
+      ...PLOTLY_LAYOUT.xaxis,
+      type: 'category',
+      tickangle: -25,
+      tickfont: { size: 9, color: '#c4b5fd', family: 'JetBrains Mono, monospace' },
+    },
+    yaxis: {
+      ...PLOTLY_LAYOUT.yaxis,
+      range: [0, 90],
+      title: { text: 'Risk Score (0-100)', font: { size: 10, color: '#64748b' } },
+    },
+    shapes: [{
+      type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 60, y1: 60,
+      line: { color: 'rgba(249,115,22,0.45)', dash: 'dash', width: 1.5 },
+    }],
+    annotations: [{
+      xref: 'paper', x: 1, y: 60, text: 'High Risk (60.0)',
+      showarrow: false,
+      font: { size: 9, color: '#f97316', family: 'JetBrains Mono' },
+      xanchor: 'right', yshift: 10,
+    }],
+  };
+
+  Plotly.purge('chart-risk-bar');
+  Plotly.newPlot('chart-risk-bar', [trace], layout, PLOTLY_CONFIG);
+
+  // Re-attach click handler (navigate to user detail)
+  document.getElementById('chart-risk-bar').on('plotly_click', (data) => {
+    if (data.points?.length) {
+      // Recover the pseudo_id from customdata since x is now the real name
+      const pseudoId = data.points[0].customdata[0];
+      appState.currentUser = pseudoId;
+      switchPage('users');
+    }
+  });
 }
 
 // ── Application Bootstrap ────────────────────────────────────
