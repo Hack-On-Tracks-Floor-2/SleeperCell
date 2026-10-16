@@ -92,7 +92,25 @@ class GenAILayer:
             )
             return response["message"]["content"]
         except Exception as e:
-            print(f"  [GenAI] LLM call failed: {e}")
+            print(f"  [GenAI] LLM call with {self.model_name} failed: {e}")
+            # If current model failed (e.g. CUDA/VRAM issue), try llama3.2:3b as fallback
+            if self.model_name != "llama3.2:3b":
+                try:
+                    import ollama
+                    print("  [GenAI] Attempting fallback to 'llama3.2:3b'...")
+                    messages = []
+                    if system_prompt:
+                        messages.append({"role": "system", "content": system_prompt})
+                    messages.append({"role": "user", "content": prompt})
+                    response = ollama.chat(
+                        model="llama3.2:3b",
+                        messages=messages,
+                        options={"temperature": 0.3, "num_predict": 1024},
+                    )
+                    self.model_name = "llama3.2:3b"
+                    return response["message"]["content"]
+                except Exception as e2:
+                    print(f"  [GenAI] Fallback LLM call failed: {e2}")
             return ""
 
     def explain_alert(self, alert_data: Dict) -> Dict:

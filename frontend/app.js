@@ -1718,10 +1718,12 @@ async function loadSimulatorPage() {
 
 function renderScenarioCatalog(scenarios) {
   const container = document.getElementById('scenario-table');
-  if (!scenarios.length) {
+  if (!scenarios || !scenarios.length) {
     showEmpty(container, 'No scenarios found in catalog.');
     return;
   }
+
+  window._simScenarios = scenarios;
 
   container.innerHTML = `
     <table class="data-table">
@@ -1736,15 +1738,15 @@ function renderScenarioCatalog(scenarios) {
         </tr>
       </thead>
       <tbody>
-        ${scenarios.map(s => `
+        ${scenarios.map((s, i) => `
           <tr>
             <td><strong class="text-white">${s.name || s.scenario}</strong></td>
-            <td class="text-xs text-muted">${s.description || 'Simulated anomalous behavior pattern'}</td>
+            <td class="text-xs text-muted" style="max-width:280px;line-height:1.4;">${s.description || 'Simulated anomalous behavior pattern'}</td>
             <td class="mono font-semibold">${s.user_id || 'USER-003'}</td>
             <td class="mono text-xs">${s.destination || 'mega.nz'}</td>
-            <td><span class="tag-pill">${s.expected_detectors || 'Ensemble'}</span></td>
+            <td><span class="tag-pill" style="font-size:0.75rem;">${s.expected_detectors || 'Ensemble'}</span></td>
             <td>
-              <button class="btn btn-outline btn-sm" onclick="loadSimPreset('${s.name || s.scenario}', '${s.user_id || 'USER-003'}', ${s.volume_mb || 500}, '${s.destination || 'mega.nz'}', ${s.after_hours || true}, '${s.dns_query || ''}')">
+              <button class="btn btn-outline btn-sm" onclick="loadSimPresetByIndex(${i})">
                 Load Preset
               </button>
             </td>
@@ -1761,22 +1763,26 @@ function renderSimForm() {
     <form id="form-simulate" onsubmit="handleSimulateSubmit(event)">
       <div class="sim-param-group">
         <label class="sim-param-label">Scenario Name:</label>
-        <input type="text" id="sim-scenario" class="form-select" value="Large Cloud Storage Exfiltration" required>
+        <input type="text" id="sim-scenario" class="form-select" value="Cloud Storage Exfiltration (High Volume)" required>
       </div>
       <div class="sim-param-group">
-        <label class="sim-param-label">Simulated User:</label>
+        <label class="sim-param-label">Simulated User Subject:</label>
         <select id="sim-user" class="form-select">
-          <option value="USER-003">USER-003 (Finance / Suspicious)</option>
-          <option value="USER-001">USER-001 (Engineering / Baseline)</option>
-          <option value="USER-009">USER-009 (IT Support)</option>
+          <option value="USER-003">USER-003 (Finance / Active Resignation Notice)</option>
+          <option value="USER-001">USER-001 (DevOps / Baseline Engineer)</option>
+          <option value="USER-002">USER-002 (HR / Normal Profile)</option>
+          <option value="USER-004">USER-004 (Database Engineering)</option>
+          <option value="USER-007">USER-007 (IT Helpdesk Specialist)</option>
+          <option value="USER-009">USER-009 (Systems Engineering / Flagged Ingress)</option>
+          <option value="USER-010">USER-010 (External Contractor)</option>
         </select>
       </div>
       <div class="sim-param-group">
         <div class="sim-param-label">
           <span>Transfer Volume:</span>
-          <span class="sim-param-val" id="sim-vol-val">850 MB</span>
+          <span class="sim-param-val" id="sim-vol-val">1250 MB</span>
         </div>
-        <input type="range" id="sim-volume" min="10" max="3000" step="50" value="850" oninput="document.getElementById('sim-vol-val').textContent = this.value + ' MB'">
+        <input type="range" id="sim-volume" min="10" max="3000" step="25" value="1250" oninput="document.getElementById('sim-vol-val').textContent = this.value + ' MB'">
       </div>
       <div class="sim-param-group">
         <label class="sim-param-label">Destination IP / Domain:</label>
@@ -1784,7 +1790,7 @@ function renderSimForm() {
       </div>
       <div class="sim-param-group">
         <label class="sim-param-label">DNS Query (Optional Tunneling Probe):</label>
-        <input type="text" id="sim-dns" class="form-select" placeholder="e.g. 783abdf1890cdfe.tunnel.darkops.io" value="">
+        <input type="text" id="sim-dns" class="form-select" placeholder="e.g. 783abdf1890cdfe991204857bca.tunnel.darkops-c2.net" value="">
       </div>
       <div class="sim-param-group" style="flex-direction:row;align-items:center;gap:10px;">
         <input type="checkbox" id="sim-after-hours" checked style="width:16px;height:16px;cursor:pointer;">
@@ -1797,14 +1803,53 @@ function renderSimForm() {
   `;
 }
 
+window.loadSimPresetByIndex = function (idx) {
+  if (!window._simScenarios || !window._simScenarios[idx]) return;
+  const s = window._simScenarios[idx];
+  window.loadSimPreset(
+    s.name || s.scenario,
+    s.user_id || 'USER-003',
+    s.volume_mb || 500,
+    s.destination || 'mega.nz',
+    s.after_hours !== undefined ? s.after_hours : true,
+    s.dns_query || ''
+  );
+};
+
 window.loadSimPreset = function (name, user, vol, dest, afterHours, dns) {
-  document.getElementById('sim-scenario').value = name;
-  document.getElementById('sim-user').value = user;
-  document.getElementById('sim-volume').value = vol;
-  document.getElementById('sim-vol-val').textContent = vol + ' MB';
-  document.getElementById('sim-dest').value = dest;
-  document.getElementById('sim-after-hours').checked = Boolean(afterHours);
-  document.getElementById('sim-dns').value = dns || '';
+  const scenInput = document.getElementById('sim-scenario');
+  const userInput = document.getElementById('sim-user');
+  const volInput = document.getElementById('sim-volume');
+  const volVal = document.getElementById('sim-vol-val');
+  const destInput = document.getElementById('sim-dest');
+  const afterInput = document.getElementById('sim-after-hours');
+  const dnsInput = document.getElementById('sim-dns');
+
+  if (scenInput) scenInput.value = name;
+  if (userInput) {
+    let found = false;
+    for (let opt of userInput.options) {
+      if (opt.value === user) {
+        userInput.value = user;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      const newOpt = document.createElement('option');
+      newOpt.value = user;
+      newOpt.textContent = `${user} (Target)`;
+      userInput.appendChild(newOpt);
+      userInput.value = user;
+    }
+  }
+  if (volInput) {
+    volInput.value = vol;
+    if (volVal) volVal.textContent = vol + ' MB';
+  }
+  if (destInput) destInput.value = dest;
+  if (afterInput) afterInput.checked = Boolean(afterHours);
+  if (dnsInput) dnsInput.value = dns || '';
   showToast(`Loaded preset "${name}"`, 'info');
 };
 
@@ -1819,7 +1864,7 @@ async function handleSimulateSubmit(e) {
     volume_mb: parseInt(document.getElementById('sim-volume').value, 10),
     destination: document.getElementById('sim-dest').value,
     after_hours: document.getElementById('sim-after-hours').checked,
-    dns_query: document.getElementById('sim-dns').value.trim(),
+    dns_query: (document.getElementById('sim-dns').value || '').trim(),
   };
 
   try {
@@ -1827,6 +1872,7 @@ async function handleSimulateSubmit(e) {
     const isCritical = res.max_score >= 0.7;
     const isHigh = res.max_score >= 0.4;
     const statusClass = isCritical ? 'critical' : isHigh ? 'high' : 'normal';
+    const kcClass = isCritical ? 'critical' : isHigh ? 'high' : 'normal';
 
     resultsContainer.innerHTML = `
       <div class="sim-result-card">
@@ -1840,24 +1886,37 @@ async function handleSimulateSubmit(e) {
 
         <div>
           <div style="font-size:0.75rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:8px;">Triggered Detection Models</div>
-          ${(res.triggered_detectors || []).map(d => `
+          ${(res.triggered_detectors && res.triggered_detectors.length) ? (res.triggered_detectors.map(d => `
             <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);padding:8px 12px;border-radius:6px;margin-bottom:6px;border:1px solid var(--border-subtle);">
               <span style="font-weight:600;font-size:0.85rem;color:#fff;">${d.name}</span>
-              <span class="mono" style="color:var(--accent-hover);">${(d.score * 100).toFixed(0)}% Confidence</span>
+              <span class="mono" style="color:var(--accent-hover);font-weight:700;">${(d.score * 100).toFixed(0)}% Confidence</span>
             </div>
-          `).join('')}
+          `).join('')) : `
+            <div style="padding:10px 14px;background:var(--bg-surface);border-radius:6px;border:1px dashed var(--border-subtle);font-size:0.8rem;color:var(--text-muted);">
+              &#x2714; No anomaly detectors triggered. Evaluated activity conforms to established benign baselines.
+            </div>
+          `}
         </div>
+
+        ${(res.tags && res.tags.length) ? `
+          <div>
+            <div style="font-size:0.75rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px;">Behavioral Evidence Tags</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${res.tags.map(t => `<span class="tag-pill" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;font-size:0.72rem;padding:3px 8px;border-radius:4px;">${t}</span>`).join('')}
+            </div>
+          </div>
+        ` : ''}
 
         <div>
           <div style="font-size:0.75rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px;">Kill Chain Stage</div>
-          <span class="severity-badge critical">${res.kill_chain_stage}</span>
+          <span class="severity-badge ${kcClass}">${res.kill_chain_stage}</span>
         </div>
 
         <div>
-          <div style="font-size:0.75rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px;">GenAI Analysis &amp; Remediation</div>
-          <p style="font-size:0.825rem;line-height:1.5;color:var(--text-primary);margin-bottom:8px;">${res.narrative}</p>
-          <ul style="padding-left:18px;font-size:0.78rem;color:var(--text-secondary);">
-            ${(res.recommended_actions || []).map(a => `<li>${a}</li>`).join('')}
+          <div style="font-size:0.75rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px;">GenAI Analysis &amp; Remediation Guidance</div>
+          <p style="font-size:0.825rem;line-height:1.55;color:var(--text-primary);margin-bottom:8px;">${res.narrative}</p>
+          <ul style="padding-left:18px;font-size:0.78rem;color:var(--text-secondary);line-height:1.45;">
+            ${(res.recommended_actions || []).map(a => `<li style="margin-bottom:4px;">${a}</li>`).join('')}
           </ul>
         </div>
       </div>
