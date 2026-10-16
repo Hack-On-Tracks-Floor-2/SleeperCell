@@ -142,20 +142,51 @@
           <div class="card card-glow">
             <div class="card-header">
               <div class="card-title-group">
-                <span class="card-title">Risk Score by User</span>
-                <span class="card-subtitle">Ensemble behavioral anomaly rating (0 - 100)</span>
+                <span class="card-title">Employee Threat &amp; Risk Scores</span>
+                <span class="card-subtitle">Comparative behavioral threat rating (0 to 100 points) evaluating anomalous data transfers and insider risk</span>
               </div>
               <div class="card-actions" id="risk-chart-actions">
-                <span class="badge-subtle">High threshold: 60+</span>
+                <span class="badge-subtle" title="Accounts with scores of 60.0 or higher require active SOC intervention">Threshold: 60+ pts</span>
                 <!-- Injected by JS when admin session is active -->
                 <button class="admin-lock-btn" id="chart-reveal-names-btn" style="display:none;" title="Toggle real names on chart">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                  Reveal Names
+                  Reveal Real Names
                 </button>
               </div>
             </div>
+
+            <!-- Accessible Main Takeaway Callout -->
+            <div class="chart-takeaway-container" id="risk-chart-takeaway-box" role="region" aria-label="Key Insight">
+              <div class="chart-takeaway-content">
+                <span class="takeaway-badge">💡 Main Takeaway</span>
+                <span class="takeaway-text" id="risk-chart-takeaway-text">
+                  <strong>USER-003</strong> is the only account crossing the High Risk threshold (Score: <strong>65.0 pts</strong> with 145 alerts) and requires immediate SOC investigation. All other users remain within safe or moderate monitoring ranges.
+                </span>
+              </div>
+            </div>
+
+            <!-- Dual-Coded Accessible Legend (Color + Pattern + Status) -->
+            <div class="chart-accessible-legend" id="risk-chart-legend" aria-label="Risk Score Visual Legend">
+              <div class="legend-item">
+                <span class="legend-swatch legend-high"></span>
+                <span class="legend-text"><strong>High Risk (&ge;60 pts):</strong> Diagonal Stripes / Immediate Action</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch legend-medium"></span>
+                <span class="legend-text"><strong>Medium Risk (40&ndash;59 pts):</strong> Dotted / Close Monitoring</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch legend-low"></span>
+                <span class="legend-text"><strong>Low Risk (&lt;40 pts):</strong> Solid Blue / Normal Baseline</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-line-sample"></span>
+                <span class="legend-text"><strong>High Risk Threshold:</strong> 60.0 pts</span>
+              </div>
+            </div>
+
             <div class="card-body flush">
-              <div id="chart-risk-bar" class="chart-container"></div>
+              <div id="chart-risk-bar" class="chart-container" style="min-height: 350px;"></div>
             </div>
           </div>
 
@@ -306,44 +337,84 @@
         <div class="metrics-strip" id="user-metrics"></div>
 
         <div class="grid-2 mb-24">
-          <div class="card">
+          <!-- 1. Daily Outbound Volume Card -->
+          <div class="card" role="region" aria-labelledby="heading-user-volume">
             <div class="card-header">
               <div class="card-title-group">
-                <span class="card-title">Daily Outbound Volume</span>
-                <span class="card-subtitle">Normal baseline corridor vs observed transfer volume</span>
+                <div class="card-title-row">
+                  <span class="card-title" id="heading-user-volume">Daily Outbound Volume</span>
+                  <button class="info-help-btn" type="button" aria-label="Explanation of Daily Outbound Volume" data-tooltip="This chart tracks how much data the user uploaded outside the company each day. The blue shaded band represents their normal daily routine. Sudden spikes rising above the band highlight unexpected data transfers that could indicate file exfiltration.">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  </button>
+                </div>
+                <span class="chart-what-shows"><strong>What this shows:</strong> Daily external data uploads (MB) compared against typical baseline behavior.</span>
+              </div>
+            </div>
+            <div class="chart-takeaway-container" id="takeaway-user-volume" role="note">
+              <div class="chart-takeaway-content">
+                <span class="takeaway-badge">💡 Takeaway</span>
+                <span class="takeaway-text" id="takeaway-text-user-volume">Calculating volume baseline...</span>
               </div>
             </div>
             <div class="card-body flush">
-              <div id="chart-user-volume" class="chart-container"></div>
+              <div id="chart-user-volume" class="chart-container" style="min-height: 310px;" aria-label="Daily Outbound Volume Chart"></div>
+              <div class="sr-only" id="sr-user-volume">Daily Outbound Volume trend showing data sent out in megabytes per day compared to the user's normal baseline corridor.</div>
             </div>
           </div>
 
-          <div class="card">
+          <!-- 2. Activity by Hour of Day Card -->
+          <div class="card" role="region" aria-labelledby="heading-user-hourly">
             <div class="card-header">
               <div class="card-title-group">
-                <span class="card-title">Activity by Hour of Day</span>
-                <span class="card-subtitle">Distribution of network activity (Red = After Hours 19:00–07:00)</span>
+                <div class="card-title-row">
+                  <span class="card-title" id="heading-user-hourly">Activity by Hour of Day</span>
+                  <button class="info-help-btn" type="button" aria-label="Explanation of Activity by Hour of Day" data-tooltip="This chart shows when the employee connects to the network during a 24-hour day in UTC time. The shaded areas highlight nighttime hours when the office is closed (7 PM to 7 AM). Large clusters of activity during late night hours often indicate automated malware or unauthorized after-hours data transfers.">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  </button>
+                </div>
+                <span class="chart-what-shows"><strong>What this shows:</strong> Hourly distribution of network connections (UTC), highlighting business hours vs late-night activity.</span>
+              </div>
+            </div>
+            <div class="chart-takeaway-container" id="takeaway-user-hourly" role="note">
+              <div class="chart-takeaway-content">
+                <span class="takeaway-badge">💡 Takeaway</span>
+                <span class="takeaway-text" id="takeaway-text-user-hourly">Analyzing hourly connection patterns...</span>
               </div>
             </div>
             <div class="card-body flush">
-              <div id="chart-user-hourly" class="chart-container"></div>
+              <div id="chart-user-hourly" class="chart-container" style="min-height: 310px;" aria-label="Activity by Hour of Day Chart"></div>
+              <div class="sr-only" id="sr-user-hourly">Hourly distribution of network connections for the selected user across 24 hours UTC, highlighting after-hours activity between 7 PM and 7 AM.</div>
             </div>
           </div>
         </div>
 
-        <div class="card mb-24">
+        <!-- 3. Baseline Deviation Z-Scores Card -->
+        <div class="card mb-24" role="region" aria-labelledby="heading-user-zscore">
           <div class="card-header">
             <div class="card-title-group">
-              <span class="card-title">Baseline Deviation Z-Scores</span>
-              <span class="card-subtitle">Statistical deviations against user's historical peer baseline</span>
+              <div class="card-title-row">
+                <span class="card-title" id="heading-user-zscore">Baseline Deviation Z-Scores</span>
+                <button class="info-help-btn" type="button" aria-label="Explanation of Baseline Deviation" data-tooltip="This chart measures how drastically today's behavior departs from this employee's historical average across four metrics. A score near 0 means business as usual, while a score above 2 is unusual and above 3 is very unusual. Spikes that breach the shaded warning or critical zones trigger automated security alerts.">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+              </div>
+              <span class="card-subtitle">How far from this user's normal. 0 = normal, above 2 = unusual, above 3 = very unusual.</span>
+              <span class="chart-what-shows"><strong>What this shows:</strong> Statistical deviation from personal normal behavior across data volume, connection counts, and timing.</span>
             </div>
             <div class="card-actions">
-              <span class="badge-subtle text-amber">Warning: 2.0σ</span>
-              <span class="badge-subtle text-rose">Critical: 3.0σ</span>
+              <span class="badge-subtle" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.35);">Unusual: +2 (Warning)</span>
+              <span class="badge-subtle" style="background:rgba(220,38,38,0.15);color:#ef4444;border:1px solid rgba(220,38,38,0.35);">Very Unusual: +3 (Critical)</span>
+            </div>
+          </div>
+          <div class="chart-takeaway-container" id="takeaway-user-zscore" role="note">
+            <div class="chart-takeaway-content">
+              <span class="takeaway-badge">💡 Takeaway</span>
+              <span class="takeaway-text" id="takeaway-text-user-zscore">Evaluating behavioral departures...</span>
             </div>
           </div>
           <div class="card-body flush">
-            <div id="chart-user-zscore" class="chart-container"></div>
+            <div id="chart-user-zscore" class="chart-container" style="min-height: 310px;" aria-label="Baseline Deviation Z-Scores Chart"></div>
+            <div class="sr-only" id="sr-user-zscore">Baseline deviation trend comparing four behavioral metrics against the user's historical normal, with shaded unusual and very unusual warning zones.</div>
           </div>
         </div>
 

@@ -342,35 +342,84 @@ if page == "🏠 Overview":
     col_left, col_right = st.columns([3, 2])
 
     with col_left:
-        st.markdown('<div class="section-header">📊 Risk Score Heatmap by User</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">📊 Employee Behavioral Threat &amp; Risk Scores</div>', unsafe_allow_html=True)
+        st.info("💡 **Main Takeaway:** **USER-003** is the only user exceeding the high-risk threshold (65.0 pts with 145 alerts) requiring immediate investigation; all other users remain in safe or moderate monitoring ranges.")
+
+        # Colorblind-friendly palette mapping and dual-coded hatch patterns
+        pattern_shapes = ["/" if score >= 60 else ("." if score >= 40 else "") for score in risk_df["risk_score"]]
+        direct_labels = [f"{score:.1f} pts ({sev.upper()})" for score, sev in zip(risk_df["risk_score"], risk_df["severity"])]
+        threshold_status = [
+            f"🚨 Exceeds Threshold (+{score - 60:.1f} pts)" if score >= 60 else "✓ Below High Risk Threshold"
+            for score in risk_df["risk_score"]
+        ]
+        action_recs = [
+            "Immediate SOC containment & investigation" if score >= 60 else "Standard automated monitoring"
+            for score in risk_df["risk_score"]
+        ]
 
         fig = go.Figure(go.Bar(
             x=risk_df["user_id"],
             y=risk_df["risk_score"],
             marker=dict(
                 color=risk_df["risk_score"],
-                colorscale=[[0, "#00c851"], [0.3, "#ffd700"], [0.6, "#ff8c00"], [1, "#ff4444"]],
+                # Colorblind-safe palette (Okabe-Ito inspired: Ocean Blue -> Amber -> Vermilion)
+                colorscale=[[0.0, "#0284c7"], [0.4, "#e69f00"], [0.6, "#e66101"], [1.0, "#d55e00"]],
                 showscale=True,
-                colorbar=dict(title="Risk", thickness=15),
+                colorbar=dict(title="Score (pts)", thickness=14, tickfont=dict(color="#e2e8f0", size=11)),
+                pattern=dict(
+                    shape=pattern_shapes,
+                    fillmode="overlay",
+                    fgcolor="rgba(255, 255, 255, 0.45)",
+                    size=7,
+                ),
+                line=dict(color="rgba(255,255,255,0.3)", width=1.5),
             ),
-            text=risk_df["severity"].str.upper(),
+            text=direct_labels,
             textposition="outside",
-            hovertemplate="<b>%{x}</b><br>Risk: %{y:.1f}<br>Severity: %{text}<extra></extra>",
+            textfont=dict(family="Inter, sans-serif", size=11, color="#ffffff"),
+            customdata=list(zip(threshold_status, action_recs)),
+            hovertemplate=(
+                "<b>Account: %{x}</b><br>"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━<br>"
+                "• <b>Threat Risk Score:</b> %{y:.2f} / 100 points<br>"
+                "• <b>Severity Status:</b> %{text}<br>"
+                "• <b>Threshold Check:</b> %{customdata[0]}<br>"
+                "• <b>Recommended Action:</b> %{customdata[1]}<extra></extra>"
+            ),
         ))
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            height=380,
-            margin=dict(t=20, b=40, l=50, r=20),
-            xaxis_title="User (Pseudonymized)",
-            yaxis_title="Risk Score",
-            font=dict(family="Inter"),
+            height=400,
+            margin=dict(t=30, b=65, l=75, r=25),
+            xaxis=dict(
+                title=dict(text="User Account (Pseudonymized Identifier)", font=dict(size=13, color="#f8fafc")),
+                tickfont=dict(size=12, color="#e2e8f0"),
+                showgrid=False,
+            ),
+            yaxis=dict(
+                title=dict(text="Threat Risk Score (Points, 0–100 Scale)", font=dict(size=13, color="#f8fafc")),
+                tickfont=dict(size=12, color="#e2e8f0"),
+                range=[0, 100],
+                dtick=20,
+                ticksuffix=" pts",
+                showgrid=True,
+                gridcolor="rgba(255,255,255,0.08)",
+            ),
+            hoverlabel=dict(
+                bgcolor="#0f172a",
+                bordercolor="#38bdf8",
+                font=dict(family="Inter, sans-serif", size=12, color="#ffffff"),
+            ),
+            font=dict(family="Inter, sans-serif"),
         )
-        fig.add_hline(y=65, line_dash="dash", line_color="#ff4444",
-                     annotation_text="High Risk Threshold", annotation_position="top right")
-        fig.add_hline(y=40, line_dash="dot", line_color="#ffd700",
-                     annotation_text="Medium", annotation_position="bottom right")
+        fig.add_hline(
+            y=60, line_dash="dash", line_color="#ef4444", line_width=2,
+            annotation_text="▲ High-Risk Threshold (60.0 pts)", annotation_position="top right",
+            annotation_font=dict(size=11, color="#ffffff"),
+            annotation_bgcolor="#d55e00",
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     with col_right:
@@ -586,82 +635,213 @@ elif page == "👤 User Analysis":
 
         with col_l:
             st.markdown("**📈 Daily Outbound Volume**")
+            st.caption("What this shows: Daily external data uploads (MB) compared against typical baseline behavior.")
+
+            mb_series = user_daily["total_bytes_out"] / (1024 * 1024)
+            # Baseline calculation (excluding high outliers)
+            non_spike = mb_series[user_daily["total_bytes_out_z_self"].fillna(0) <= 2.0]
+            base_mean = non_spike.mean() if len(non_spike) >= 3 else mb_series.mean()
+            base_std = non_spike.std() if len(non_spike) >= 3 else (mb_series.std() or 0.05)
+            base_upper = max(0.25, round(base_mean + 1.5 * (base_std or 0.05), 2))
+            base_lower = max(0.0, round(max(0, base_mean - 1.0 * (base_std or 0.05)), 2))
+
+            # Spikes above band
+            spike_mask = mb_series > base_upper
+            if spike_mask.any():
+                max_spike_idx = mb_series.idxmax()
+                max_date = user_daily.loc[max_spike_idx, "date"]
+                max_mb = mb_series.loc[max_spike_idx]
+                ratio = max_mb / max(base_mean, 0.01)
+                st.info(f"💡 **Takeaway:** **{max_date}** outbound volume was **{ratio:.1f}x** this user's normal baseline ({max_mb:.2f} MB vs ~{base_mean:.2f} MB typical).")
+            else:
+                st.info(f"💡 **Takeaway:** Daily outbound volume remained within the normal baseline corridor ({base_lower:.2f}–{base_upper:.2f} MB) across all days.")
+
+            with st.expander("ℹ️ What is Daily Outbound Volume?"):
+                st.write("This chart tracks how much data the user uploaded outside the company each day. The blue shaded band represents their normal daily routine. Sudden spikes rising above the band highlight unexpected data transfers that could indicate file exfiltration.")
+
             fig = go.Figure()
+            # Lower bound (invisible baseline)
             fig.add_trace(go.Scatter(
-                x=user_daily["date"], y=user_daily["total_bytes_out"],
+                x=user_daily["date"], y=[base_lower] * len(user_daily),
+                mode="lines", line=dict(width=0), showlegend=False, hoverinfo="none"
+            ))
+            # Upper bound + Shaded corridor
+            fig.add_trace(go.Scatter(
+                x=user_daily["date"], y=[base_upper] * len(user_daily),
+                mode="lines", fill="tonexty", fillcolor="rgba(56, 189, 248, 0.12)",
+                line=dict(color="rgba(56, 189, 248, 0.5)", width=1.5, dash="dot"),
+                name="Normal baseline corridor",
+                hovertemplate=f"<b>Baseline Corridor</b><br>Typical: {base_lower:.2f}–{base_upper:.2f} MB<extra></extra>"
+            ))
+            # Observed data line
+            fig.add_trace(go.Scatter(
+                x=user_daily["date"], y=mb_series,
                 mode="lines+markers",
-                name="Bytes Out",
-                line=dict(color="#00d2ff", width=2),
-                fill="tozeroy",
-                fillcolor="rgba(0, 210, 255, 0.1)",
+                name="Observed data sent",
+                line=dict(color="#0072b2", width=2.2),
+                marker=dict(size=6, color="#38bdf8", line=dict(color="#ffffff", width=1)),
+                hovertemplate="<b>Date: %{x}</b><br>• Data sent: <b>%{y:.2f} MB</b><extra></extra>"
             ))
 
-            # Add peer average if available
-            peer_dept = user_daily["department"].iloc[0] if "department" in user_daily.columns else None
-            if peer_dept:
-                peer_avg = daily[daily["department"] == peer_dept].groupby("date")["total_bytes_out"].mean()
+            # Mark spikes
+            if spike_mask.any():
+                spikes = user_daily[spike_mask]
+                spike_mbs = mb_series[spike_mask]
+                spike_labels = [f"{d.split('-')[1]}/{d.split('-')[2]}: {mb/max(base_mean,0.01):.1f}x" for d, mb in zip(spikes["date"], spike_mbs)]
                 fig.add_trace(go.Scatter(
-                    x=peer_avg.index, y=peer_avg.values,
-                    mode="lines",
-                    name=f"Peer Avg ({peer_dept})",
-                    line=dict(color="#ff8c00", width=1, dash="dash"),
+                    x=spikes["date"], y=spike_mbs,
+                    mode="markers+text",
+                    name="Spike above baseline",
+                    marker=dict(size=10, color="#d55e00", symbol="diamond", line=dict(color="#ffffff", width=1.5)),
+                    text=spike_labels,
+                    textposition="top center",
+                    textfont=dict(size=11, color="#fca5a5"),
+                    hoverinfo="skip"
                 ))
 
             fig.update_layout(
                 template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                height=320, margin=dict(t=10, b=30),
-                yaxis_title="Bytes", font=dict(family="Inter", size=11),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+                height=340, margin=dict(t=20, b=50, l=70, r=20),
+                xaxis=dict(title=dict(text="Date", font=dict(size=12, color="#f8fafc")), tickfont=dict(size=11, color="#e2e8f0"), showgrid=False),
+                yaxis=dict(title=dict(text="Data sent out (MB)", font=dict(size=12, color="#f8fafc")), tickfont=dict(size=11, color="#e2e8f0"), ticksuffix=" MB", showgrid=True, gridcolor="rgba(255,255,255,0.06)"),
+                font=dict(family="Inter", size=12),
+                legend=dict(orientation="h", yanchor="bottom", y=-0.3),
             )
             st.plotly_chart(fig, use_container_width=True)
 
         with col_r:
-            st.markdown("**📊 Activity Distribution by Hour**")
-            user_flows = data["enriched_flows"][data["enriched_flows"]["user_id"] == selected_user]
-            if "hour" in user_flows.columns:
-                hour_dist = user_flows.groupby("hour").size().reindex(range(24), fill_value=0)
-                fig = go.Figure(go.Bar(
-                    x=hour_dist.index, y=hour_dist.values,
-                    marker=dict(
-                        color=["#ff4444" if (h >= 20 or h < 7) else "#00d2ff" for h in range(24)],
-                    ),
-                ))
-                fig.update_layout(
-                    template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    height=320, margin=dict(t=10, b=30),
-                    xaxis_title="Hour of Day", yaxis_title="Flow Count",
-                    font=dict(family="Inter", size=11),
-                )
-                # Highlight after-hours
-                fig.add_vrect(x0=19.5, x1=23.5, fillcolor="rgba(255,68,68,0.08)", layer="below")
-                fig.add_vrect(x0=-0.5, x1=6.5, fillcolor="rgba(255,68,68,0.08)", layer="below")
-                st.plotly_chart(fig, use_container_width=True)
+            st.markdown("**📊 Activity by Hour of Day**")
+            st.caption("What this shows: Hourly distribution of network connections (UTC), highlighting business hours vs late-night activity.")
 
-        # Z-score trends
-        st.markdown("**📉 Baseline Deviation (Z-Score vs Self History)**")
-        z_cols = [c for c in user_daily.columns if c.endswith("_z_self")]
-        if z_cols:
-            fig = go.Figure()
-            colors = px.colors.qualitative.Set2
-            for i, col in enumerate(z_cols[:4]):
-                name = col.replace("_z_self", "").replace("_", " ").title()
-                fig.add_trace(go.Scatter(
-                    x=user_daily["date"], y=user_daily[col],
-                    mode="lines+markers",
-                    name=name,
-                    line=dict(color=colors[i % len(colors)], width=2),
-                ))
-            fig.add_hline(y=2, line_dash="dash", line_color="#ff8c00", annotation_text="Warning (2σ)")
-            fig.add_hline(y=3, line_dash="dash", line_color="#ff4444", annotation_text="Critical (3σ)")
-            fig.add_hline(y=0, line_dash="dot", line_color="rgba(255,255,255,0.2)")
-            fig.update_layout(
+            user_flows = data["enriched_flows"][data["enriched_flows"]["user_id"] == selected_user]
+            hour_dist = user_flows.groupby("hour").size().reindex(range(24), fill_value=0) if ("hour" in user_flows.columns and not user_flows.empty) else pd.Series([0]*24)
+            hour_12_labels = ['12 AM', '1 AM', '2 AM', '3 AM', '4 AM', '5 AM', '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM', '9 PM', '10 PM', '11 PM']
+
+            total_h_flows = int(hour_dist.sum())
+            after_hours_cnt = int(sum(hour_dist[h] for h in range(24) if (h >= 19 or h < 7)))
+            peak_h = int(hour_dist.idxmax()) if total_h_flows > 0 else 0
+            peak_12 = hour_12_labels[peak_h]
+
+            if after_hours_cnt > 0:
+                pct = round((after_hours_cnt / max(total_h_flows, 1)) * 100)
+                st.info(f"💡 **Takeaway:** **{after_hours_cnt} connections ({pct}%)** occurred during after-hours (7 PM – 7 AM UTC), peaking at **{peak_12} UTC**.")
+            else:
+                st.info(f"💡 **Takeaway:** All **{total_h_flows} connections** occurred during standard daytime business hours (7 AM – 7 PM UTC), peaking at {peak_12} UTC.")
+
+            with st.expander("ℹ️ What is Activity by Hour of Day?"):
+                st.write("This chart shows when the employee connects to the network during a 24-hour day in UTC time. The shaded areas highlight nighttime hours when the office is closed (7 PM to 7 AM). Large clusters of activity during late night hours often indicate automated malware or unauthorized after-hours data transfers.")
+
+            # Dual-coded traces: Daytime vs After-Hours
+            day_counts = [hour_dist[h] if (7 <= h < 19) else 0 for h in range(24)]
+            night_counts = [hour_dist[h] if (h >= 19 or h < 7) else 0 for h in range(24)]
+
+            fig_h = go.Figure()
+            fig_h.add_trace(go.Bar(
+                x=list(range(24)), y=day_counts,
+                name="Daytime (7 AM – 7 PM)",
+                marker=dict(color="#0284c7", line=dict(color="rgba(255,255,255,0.2)", width=1)),
+                hovertemplate="<b>%{x}:00 UTC</b><br>Daytime Flows: %{y}<extra></extra>"
+            ))
+            fig_h.add_trace(go.Bar(
+                x=list(range(24)), y=night_counts,
+                name="After-hours (7 PM – 7 AM)",
+                marker=dict(color="#d55e00", pattern=dict(shape="/", fgcolor="rgba(255,255,255,0.45)"), line=dict(color="rgba(255,255,255,0.35)", width=1.2)),
+                hovertemplate="<b>%{x}:00 UTC</b><br>After-Hours Flows: %{y}<extra></extra>"
+            ))
+
+            fig_h.update_layout(
                 template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                height=300, margin=dict(t=10, b=30),
-                yaxis_title="Z-Score",
-                font=dict(family="Inter", size=11),
+                height=340, margin=dict(t=20, b=50, l=65, r=20),
+                barmode="stack",
+                xaxis=dict(
+                    title=dict(text="Time of Day (UTC, 12-Hour AM/PM Format)", font=dict(size=12, color="#f8fafc")),
+                    tickmode="array", tickvals=[0, 3, 6, 9, 12, 15, 18, 21],
+                    ticktext=['12 AM', '3 AM', '6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM'],
+                    tickangle=0, tickfont=dict(size=11, color="#e2e8f0"), showgrid=False
+                ),
+                yaxis=dict(title=dict(text="Connections (Flows)", font=dict(size=12, color="#f8fafc")), tickfont=dict(size=11, color="#e2e8f0"), ticksuffix=" flows", showgrid=True, gridcolor="rgba(255,255,255,0.06)"),
+                font=dict(family="Inter", size=12),
                 legend=dict(orientation="h", yanchor="bottom", y=-0.3),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            # Highlight after-hours
+            fig_h.add_vrect(x0=18.5, x1=23.5, fillcolor="rgba(213, 94, 0, 0.10)", layer="below")
+            fig_h.add_vrect(x0=-0.5, x1=6.5, fillcolor="rgba(213, 94, 0, 0.10)", layer="below")
+            fig_h.add_annotation(
+                x=0.98, y=1, xref="paper", yref="paper",
+                text="After hours (7 PM - 7 AM)", showarrow=False,
+                font=dict(size=10, color="#ffffff"), bgcolor="#d55e00", bordercolor="#fca5a5", borderpad=4
+            )
+            st.plotly_chart(fig_h, use_container_width=True)
+
+        # 3. Z-score trends
+        st.markdown("**📉 Baseline Deviation Z-Scores**")
+        st.caption("How far from this user's normal. 0 = normal, above 2 = unusual, above 3 = very unusual.")
+        st.caption("What this shows: Statistical deviation from personal normal behavior across data volume, connection counts, and timing.")
+
+        z_cols_map = [
+            ("total_bytes_out_z_self", "Data sent", "#0072b2", "solid", "circle"),
+            ("total_flows_z_self", "Number of connections", "#e69f00", "dash", "square"),
+            ("unique_destinations_z_self", "New destinations", "#882255", "dot", "diamond"),
+            ("after_hours_ratio_z_self", "After-hours activity", "#06b6d4", "dashdot", "triangle-up"),
+        ]
+
+        # Calculate max deviation for takeaway
+        max_z_val = -999.0
+        max_z_name = ""
+        max_z_date = ""
+        for col, name, _, _, _ in z_cols_map:
+            if col in user_daily.columns:
+                series = user_daily[col].dropna()
+                if not series.empty and series.max() > max_z_val:
+                    max_z_val = float(series.max())
+                    max_z_name = name
+                    max_z_date = user_daily.loc[series.idxmax(), "date"]
+
+        if max_z_val >= 2.0 and max_z_date:
+            zone = "Very Unusual" if max_z_val >= 3.0 else "Unusual"
+            st.info(f"💡 **Takeaway:** **{max_z_date}** **{max_z_name}** surged to **+{max_z_val:.1f}** points above normal, entering the **{zone}** zone.")
+        else:
+            st.info("💡 **Takeaway:** All behavioral metrics remained within expected statistical ranges (< 2.0 departures from normal baseline).")
+
+        with st.expander("ℹ️ What are Baseline Deviation Z-Scores?"):
+            st.write("This chart measures how drastically today's behavior departs from this employee's historical average across four metrics. A score near 0 means business as usual, while a score above 2 is unusual and above 3 is very unusual. Spikes that breach the shaded warning or critical zones trigger automated security alerts.")
+
+        fig_z = go.Figure()
+        all_y_vals = []
+        for col, name, color, dash, sym in z_cols_map:
+            if col in user_daily.columns:
+                vals = user_daily[col].fillna(0)
+                all_y_vals.extend(vals.tolist())
+                fig_z.add_trace(go.Scatter(
+                    x=user_daily["date"], y=vals,
+                    mode="lines+markers",
+                    name=name,
+                    line=dict(color=color, width=2.2, dash=dash, shape="linear"),  # No spline
+                    marker=dict(size=6, symbol=sym, color=color, line=dict(color="#ffffff", width=1)),
+                    hovertemplate=f"<b>{name}</b><br>Date: %{{x}}<br>Deviation: +%{{y:.2f}} points<extra></extra>"
+                ))
+
+        y_max_bound = max(4.5, (max(all_y_vals) if all_y_vals else 3.5) * 1.1)
+
+        # Shaded Warning area (yellow) above +2
+        fig_z.add_shape(type="rect", xref="paper", x0=0, x1=1, y0=2, y1=3, fillcolor="rgba(245, 158, 11, 0.08)", line=dict(width=0))
+        # Shaded Critical area (red) above +3
+        fig_z.add_shape(type="rect", xref="paper", x0=0, x1=1, y0=3, y1=y_max_bound, fillcolor="rgba(220, 38, 38, 0.12)", line=dict(width=0))
+
+        # Threshold lines
+        fig_z.add_hline(y=2, line_dash="dash", line_color="#f59e0b", line_width=1.8, annotation_text="Warning: unusual for this user (+2)", annotation_position="top right", annotation_bgcolor="#d97706", annotation_font=dict(color="#ffffff", size=10))
+        fig_z.add_hline(y=3, line_dash="longdash", line_color="#dc2626", line_width=2.2, annotation_text="Critical: very unusual for this user (+3)", annotation_position="top right", annotation_bgcolor="#dc2626", annotation_font=dict(color="#ffffff", size=10))
+        fig_z.add_hline(y=0, line_dash="dot", line_color="rgba(255,255,255,0.2)")
+
+        fig_z.update_layout(
+            template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            height=340, margin=dict(t=25, b=50, l=75, r=25),
+            xaxis=dict(title=dict(text="Timeline (Date)", font=dict(size=12, color="#f8fafc")), tickfont=dict(size=11, color="#e2e8f0"), showgrid=False),
+            yaxis=dict(title=dict(text="Deviation from Normal (0 = normal, +2 = unusual)", font=dict(size=12, color="#f8fafc")), tickfont=dict(size=11, color="#e2e8f0"), showgrid=True, gridcolor="rgba(255,255,255,0.06)"),
+            font=dict(family="Inter", size=12),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3),
+        )
+        st.plotly_chart(fig_z, use_container_width=True)
 
         # User timeline
         st.markdown("**📅 Alert Timeline**")

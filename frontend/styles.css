@@ -638,15 +638,102 @@ body {
 }
 
 .card-title {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   letter-spacing: -0.2px;
 }
 
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .card-subtitle {
-  font-size: 0.72rem;
-  color: var(--text-tertiary);
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.chart-what-shows {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
+.chart-what-shows strong {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.info-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #cbd5e1;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--trans-fast);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.info-help-btn:hover,
+.info-help-btn:focus {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  outline: none;
+}
+
+.info-help-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 130%;
+  left: -20px;
+  width: 290px;
+  background: #0f172a;
+  border: 1px solid #38bdf8;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  color: #f1f5f9;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  z-index: 1000;
+  white-space: normal;
+  text-align: left;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.info-help-btn:hover::after,
+.info-help-btn:focus::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .card-body {
@@ -660,6 +747,106 @@ body {
 .chart-container {
   width: 100%;
   min-height: 260px;
+}
+
+/* ── Accessible Chart Callout & Takeaway Banner ──────────────── */
+.chart-takeaway-container {
+  margin: 12px 16px 8px 16px;
+  padding: 10px 14px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-left: 4px solid #38bdf8;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-takeaway-content {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.takeaway-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.takeaway-text {
+  font-size: 0.9rem;
+  color: #f1f5f9;
+  line-height: 1.45;
+}
+
+.takeaway-text strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ── Accessible Chart Legend (Dual-coded: Color + Pattern) ───── */
+.chart-accessible-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px 12px 16px;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-swatch.legend-high {
+  background: #d55e00;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.45) 2px, rgba(255,255,255,0.45) 4px);
+}
+
+.legend-swatch.legend-medium {
+  background: #e69f00;
+  background-image: radial-gradient(rgba(255,255,255,0.7) 1.5px, transparent 1.5px);
+  background-size: 5px 5px;
+}
+
+.legend-swatch.legend-low {
+  background: #0284c7;
+}
+
+.legend-line-sample {
+  width: 20px;
+  height: 0;
+  border-top: 2px dashed #ef4444;
+  display: inline-block;
+}
+
+.legend-text {
+  font-size: 0.82rem;
+  color: #f1f5f9;
 }
 
 /* ── Metrics Strip ──────────────────────────────────────────── */

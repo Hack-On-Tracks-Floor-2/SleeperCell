@@ -9,31 +9,32 @@ const API = '';
 const PLOTLY_LAYOUT = {
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor: 'rgba(0,0,0,0)',
-  font: { family: 'Inter, sans-serif', color: '#94a3b8', size: 11 },
-  margin: { t: 24, b: 44, l: 56, r: 24 },
+  font: { family: 'Inter, sans-serif', color: '#e2e8f0', size: 12 },
+  margin: { t: 24, b: 48, l: 60, r: 24 },
   xaxis: {
-    gridcolor: 'rgba(255,255,255,0.04)',
-    zerolinecolor: 'rgba(255,255,255,0.07)',
-    tickfont: { size: 10, color: '#64748b' },
+    gridcolor: 'rgba(255,255,255,0.06)',
+    zerolinecolor: 'rgba(255,255,255,0.1)',
+    tickfont: { size: 11, color: '#e2e8f0' },
   },
   yaxis: {
-    gridcolor: 'rgba(255,255,255,0.04)',
-    zerolinecolor: 'rgba(255,255,255,0.07)',
-    tickfont: { size: 10, color: '#64748b' },
+    gridcolor: 'rgba(255,255,255,0.06)',
+    zerolinecolor: 'rgba(255,255,255,0.1)',
+    tickfont: { size: 11, color: '#e2e8f0' },
   },
   legend: {
     orientation: 'h',
     y: -0.22,
     x: 0,
-    font: { size: 10, color: '#94a3b8' },
+    font: { size: 11, color: '#f1f5f9' },
     bgcolor: 'rgba(0,0,0,0)',
   },
   hoverlabel: {
-    bgcolor: '#161c2b',
-    bordercolor: '#3b82f6',
-    font: { family: 'Inter, sans-serif', size: 11, color: '#fff' },
+    bgcolor: '#0f172a',
+    bordercolor: '#38bdf8',
+    font: { family: 'Inter, sans-serif', size: 12, color: '#ffffff' },
+    align: 'left',
   },
-  modebar: { bgcolor: 'transparent', color: '#64748b', activecolor: '#3b82f6' },
+  modebar: { bgcolor: 'transparent', color: '#94a3b8', activecolor: '#38bdf8' },
 };
 
 const PLOTLY_CONFIG = {
@@ -43,12 +44,13 @@ const PLOTLY_CONFIG = {
   displaylogo: false,
 };
 
+// Colorblind-safe palette (Okabe-Ito / Wong inspired: Vermilion, Amber, Blue, Slate)
 const SEVERITY_COLORS = {
-  critical: '#f43f5e',
-  high: '#f97316',
-  medium: '#eab308',
-  low: '#10b981',
-  info: '#64748b',
+  critical: '#d55e00', // Vermilion / High contrast reddish-orange
+  high: '#e66101',     // Amber-Orange
+  medium: '#e69f00',   // Vibrant Amber / Warm Yellow
+  low: '#0284c7',      // Clear Ocean Blue (distinguishable from amber/vermilion)
+  info: '#64748b',      // Neutral Slate
 };
 
 const DETECTOR_COLORS = {
@@ -342,7 +344,50 @@ function renderOverviewMetrics(stats) {
 
 function renderRiskBarChart(users) {
   const sorted = [...users].sort((a, b) => b.risk_score - a.risk_score);
-  const colors = sorted.map(u => SEVERITY_COLORS[u.severity] || SEVERITY_COLORS.info);
+
+  // Accessible Okabe-Ito / Colorblind-safe palette mapping
+  const getRiskColor = (severity) => {
+    switch (severity) {
+      case 'critical':
+      case 'high':
+        return '#d55e00'; // Vermilion / High contrast reddish-orange
+      case 'medium':
+        return '#e69f00'; // Amber / Orange-yellow
+      case 'low':
+        return '#0284c7'; // Blue
+      default:
+        return '#64748b'; // Slate grey
+    }
+  };
+
+  const getRiskPattern = (severity) => {
+    switch (severity) {
+      case 'critical':
+      case 'high':
+        return '/'; // Diagonal stripes for high risk
+      case 'medium':
+        return '.'; // Dotted pattern for medium risk
+      default:
+        return ''; // Solid fill for low/info
+    }
+  };
+
+  const colors = sorted.map(u => getRiskColor(u.severity));
+  const patterns = sorted.map(u => getRiskPattern(u.severity));
+
+  // Dynamically update the main takeaway banner
+  const takeawayEl = document.getElementById('risk-chart-takeaway-text');
+  if (takeawayEl && sorted.length > 0) {
+    const topUser = sorted[0];
+    const highUsers = sorted.filter(u => u.risk_score >= 60);
+    if (highUsers.length === 1) {
+      takeawayEl.innerHTML = `<strong>${topUser.user_id}</strong> is the only account crossing the High Risk threshold (Score: <strong>${topUser.risk_score.toFixed(1)} pts</strong> with ${topUser.alert_count} alerts) and requires immediate SOC investigation. All other accounts remain in safe monitoring ranges.`;
+    } else if (highUsers.length > 1) {
+      takeawayEl.innerHTML = `<strong>${highUsers.length} accounts</strong> (${highUsers.map(u => u.user_id).join(', ')}) exceed the High Risk threshold and require prioritized review.`;
+    } else {
+      takeawayEl.innerHTML = `All accounts currently remain below the 60.0-point High Risk threshold.`;
+    }
+  }
 
   const trace = {
     type: 'bar',
@@ -350,51 +395,99 @@ function renderRiskBarChart(users) {
     y: sorted.map(u => u.risk_score),
     marker: {
       color: colors,
-      line: { color: 'rgba(255,255,255,0.15)', width: 1 },
+      pattern: {
+        shape: patterns,
+        fillmode: 'overlay',
+        fgcolor: 'rgba(255, 255, 255, 0.45)',
+        size: 7,
+      },
+      line: { color: 'rgba(255, 255, 255, 0.35)', width: 1.5 },
     },
-    text: sorted.map(u => `${u.risk_score.toFixed(1)}`),
+    // Direct plain-language labels above bars so color is never the only cue
+    text: sorted.map(u => `${u.risk_score.toFixed(1)} pts<br><b>${u.severity.toUpperCase()}</b>`),
     textposition: 'outside',
-    textfont: { family: 'JetBrains Mono, monospace', size: 10, color: '#94a3b8' },
-    hovertemplate: '<b>%{x}</b><br>Risk Score: %{y:.1f}<br>Severity: %{customdata[0]}<br>Alerts: %{customdata[1]}<extra></extra>',
-    customdata: sorted.map(u => [u.severity.toUpperCase(), u.alert_count]),
+    textfont: {
+      family: 'Inter, sans-serif',
+      size: 11,
+      color: '#ffffff',
+      weight: 600,
+    },
+    customdata: sorted.map(u => [
+      u.user_id,
+      u.severity.toUpperCase(),
+      u.alert_count,
+      u.risk_score >= 60 ? '🚨 EXCEEDS THRESHOLD (+ ' + (u.risk_score - 60).toFixed(1) + ' pts)' : '✓ Below High Risk Threshold',
+      u.risk_score >= 60 ? 'Immediate containment & forensic review required' : 'Standard automated monitoring',
+    ]),
+    hovertemplate:
+      '<span style="font-size:14px;font-weight:700;color:#38bdf8;">Account: %{x}</span><br>' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>' +
+      '• <b>Threat Risk Score:</b> %{y:.2f} / 100 points<br>' +
+      '• <b>Severity Level:</b> %{customdata[1]} Risk<br>' +
+      '• <b>Security Alerts:</b> %{customdata[2]} anomalous events<br>' +
+      '• <b>Threshold Check:</b> %{customdata[3]}<br>' +
+      '• <b>Recommended Action:</b> %{customdata[4]}<br>' +
+      '<span style="font-size:11px;color:#94a3b8;margin-top:4px;">👆 Click or tap bar to inspect user timeline & network flows</span>' +
+      '<extra></extra>',
   };
 
   const layout = {
     ...PLOTLY_LAYOUT,
-    height: 290,
+    height: 350,
+    margin: { t: 30, b: 65, l: 75, r: 35 },
     xaxis: {
       ...PLOTLY_LAYOUT.xaxis,
-      // Must force category type so USER-001..USER-010 strings are NOT parsed as dates
       type: 'category',
-      tickangle: -20,
+      tickangle: -15,
+      title: {
+        text: 'User Account (Pseudonymized Identifier)',
+        font: { size: 13, color: '#f8fafc', family: 'Inter, sans-serif' },
+        standoff: 14,
+      },
+      tickfont: { size: 12, color: '#e2e8f0', family: 'Inter, sans-serif' },
+      showgrid: false,
     },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
-      range: [0, 90],
-      title: { text: 'Risk Score (0-100)', font: { size: 10, color: '#64748b' } },
+      range: [0, 100],
+      dtick: 20,
+      ticksuffix: ' pts',
+      title: {
+        text: 'Threat Risk Score (Points, 0–100 Scale)',
+        font: { size: 13, color: '#f8fafc', family: 'Inter, sans-serif' },
+        standoff: 14,
+      },
+      tickfont: { size: 12, color: '#e2e8f0', family: 'Inter, sans-serif' },
+      showgrid: true,
+      gridcolor: 'rgba(255,255,255,0.08)',
+      zeroline: true,
+      zerolinecolor: 'rgba(255,255,255,0.15)',
     },
     shapes: [
       {
         type: 'line',
-        // Use paper reference so the line spans the full plot width regardless of x values
         xref: 'paper',
         x0: 0,
         x1: 1,
         y0: 60,
         y1: 60,
-        line: { color: 'rgba(249, 115, 22, 0.45)', dash: 'dash', width: 1.5 },
+        line: { color: '#ef4444', dash: 'dash', width: 2 },
       },
     ],
     annotations: [
       {
         xref: 'paper',
-        x: 1,
+        x: 0.98,
         y: 60,
-        text: 'High Risk (60.0)',
+        text: '▲ High-Risk Action Threshold (60.0 pts)',
         showarrow: false,
-        font: { size: 9, color: '#f97316', family: 'JetBrains Mono' },
+        font: { size: 11, color: '#ffffff', family: 'Inter, sans-serif', weight: 600 },
+        bgcolor: '#d55e00',
+        bordercolor: '#fca5a5',
+        borderwidth: 1,
+        borderpad: 4,
         xanchor: 'right',
-        yshift: 10,
+        yshift: 14,
       },
     ],
   };
@@ -501,28 +594,46 @@ function renderDetectorDonutChart(counts) {
 function renderDailyVolumeChart(dailyFeatures) {
   // Group by user and date
   const users = [...new Set(dailyFeatures.map(d => d.user_id))].slice(0, 5);
-  const palette = ['#3b82f6', '#f97316', '#10b981', '#8b5cf6', '#ec4899'];
+  // Accessible Okabe-Ito palette (Blue, Amber, Sky Blue, Vermilion, Purple)
+  const palette = ['#0072b2', '#e69f00', '#56b4e9', '#d55e00', '#cc79a7'];
+  const dashStyles = ['solid', 'dash', 'dot', 'dashdot', 'longdash'];
 
   const traces = users.map((uid, idx) => {
     const userRows = dailyFeatures.filter(d => d.user_id === uid).sort((a, b) => a.date.localeCompare(b.date));
     return {
       type: 'scatter',
-      mode: 'lines',
+      mode: 'lines+markers',
       name: uid,
       x: userRows.map(r => r.date),
       y: userRows.map(r => r.total_bytes_out),
-      line: { color: palette[idx % palette.length], width: uid === 'USER-003' ? 2.5 : 1.5, shape: 'spline' },
-      hovertemplate: `<b>${uid}</b><br>%{x}<br>Bytes: %{y:,.0f}<extra></extra>`,
+      line: {
+        color: palette[idx % palette.length],
+        width: uid === 'USER-003' ? 2.5 : 1.8,
+        dash: dashStyles[idx % dashStyles.length],
+        shape: 'spline',
+      },
+      marker: { size: 5 },
+      hovertemplate: `<b>Account: ${uid}</b><br>• Date: %{x}<br>• Data Outbound: %{y:,.0f} bytes<extra></extra>`,
     };
   });
 
   const layout = {
     ...PLOTLY_LAYOUT,
-    height: 290,
+    height: 310,
+    margin: { t: 20, b: 55, l: 75, r: 25 },
+    xaxis: {
+      ...PLOTLY_LAYOUT.xaxis,
+      title: { text: 'Timeline (Date)', font: { size: 12, color: '#f8fafc' } },
+      tickfont: { size: 11, color: '#e2e8f0' },
+      showgrid: false,
+    },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
-      title: { text: 'Bytes Out', font: { size: 10, color: '#64748b' } },
+      title: { text: 'Data Transmitted (Bytes Outbound)', font: { size: 12, color: '#f8fafc' } },
+      tickfont: { size: 11, color: '#e2e8f0' },
       tickformat: '~s',
+      showgrid: true,
+      gridcolor: 'rgba(255,255,255,0.06)',
     },
   };
 
@@ -917,32 +1028,184 @@ function renderUserMetrics(risk) {
 }
 
 function renderUserVolume(dailyFeatures, userId) {
-  const sorted = [...dailyFeatures].sort((a, b) => a.date.localeCompare(b.date));
+  const container = document.getElementById('chart-user-volume');
+  if (!container || !dailyFeatures || !dailyFeatures.length) {
+    if (container) showEmpty(container, 'No daily outbound volume data recorded for this user.');
+    return;
+  }
 
-  const trace = {
+  const sorted = [...dailyFeatures].sort((a, b) => a.date.localeCompare(b.date));
+  const dates = sorted.map(d => d.date);
+
+  // Convert raw bytes to MB (Megabytes)
+  const mbValues = sorted.map(d => {
+    if (typeof d.total_bytes_out_mb === 'number' && !isNaN(d.total_bytes_out_mb)) {
+      return d.total_bytes_out_mb;
+    }
+    return (d.total_bytes_out || 0) / (1024 * 1024);
+  });
+
+  // Calculate user's typical baseline range (exclude extreme outliers with z-score > 2)
+  const nonSpikeValues = mbValues.filter((val, i) => {
+    const z = sorted[i].total_bytes_out_z_self;
+    return z === undefined || z === null || z === '' || Number(z) <= 2.0;
+  });
+  const baselineValues = nonSpikeValues.length >= 3 ? nonSpikeValues : mbValues;
+  const baselineMean = baselineValues.reduce((a, b) => a + b, 0) / baselineValues.length;
+  const variance = baselineValues.reduce((a, b) => a + Math.pow(b - baselineMean, 2), 0) / baselineValues.length;
+  const baselineStd = Math.sqrt(variance);
+
+  // Normal baseline corridor bounds
+  const baselineUpper = Math.max(0.25, Number((baselineMean + 1.5 * (baselineStd || 0.05)).toFixed(2)));
+  const baselineLower = Math.max(0, Number((Math.max(0, baselineMean - 1.0 * (baselineStd || 0.05))).toFixed(2)));
+
+  // Identify spikes outside the corridor
+  const spikeIndices = [];
+  const spikeLabels = [];
+  sorted.forEach((d, i) => {
+    const mb = mbValues[i];
+    if (mb > baselineUpper) {
+      spikeIndices.push(i);
+      const ratio = (mb / Math.max(baselineMean, 0.01)).toFixed(1);
+      const dateParts = d.date.split('-');
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const monthStr = monthNames[parseInt(dateParts[1], 10) - 1] || dateParts[1];
+      const dayStr = parseInt(dateParts[2], 10);
+      spikeLabels.push(`${monthStr} ${dayStr}: ${ratio}x normal`);
+    }
+  });
+
+  // Dynamic Takeaway generation
+  const takeawayEl = document.getElementById('takeaway-text-user-volume');
+  const srEl = document.getElementById('sr-user-volume');
+  if (spikeIndices.length > 0) {
+    let maxSpikeIdx = spikeIndices[0];
+    spikeIndices.forEach(idx => {
+      if (mbValues[idx] > mbValues[maxSpikeIdx]) maxSpikeIdx = idx;
+    });
+    const maxMb = mbValues[maxSpikeIdx];
+    const maxRatio = (maxMb / Math.max(baselineMean, 0.01)).toFixed(1);
+    const dateParts = sorted[maxSpikeIdx].date.split('-');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthStr = monthNames[parseInt(dateParts[1], 10) - 1] || dateParts[1];
+    const dayStr = parseInt(dateParts[2], 10);
+
+    const takeawayText = `<strong>${monthStr} ${dayStr}</strong> outbound volume was <strong>${maxRatio}x</strong> this user's normal baseline (<strong>${maxMb.toFixed(2)} MB</strong> vs ~${baselineMean.toFixed(2)} MB typical).`;
+    if (takeawayEl) takeawayEl.innerHTML = takeawayText;
+    if (srEl) srEl.textContent = `Daily Outbound Volume: ${monthStr} ${dayStr} was ${maxRatio} times normal baseline volume, transferring ${maxMb.toFixed(2)} MB.`;
+  } else {
+    const takeawayText = `Daily outbound volume remained within the normal baseline corridor (${baselineLower.toFixed(2)}–${baselineUpper.toFixed(2)} MB) with no anomalous spikes.`;
+    if (takeawayEl) takeawayEl.innerHTML = takeawayText;
+    if (srEl) srEl.textContent = `Daily Outbound Volume remained within normal corridor between ${baselineLower.toFixed(2)} MB and ${baselineUpper.toFixed(2)} MB.`;
+  }
+
+  // Trace 1: Lower bound of corridor (invisible baseline)
+  const traceLower = {
+    type: 'scatter',
+    mode: 'lines',
+    x: dates,
+    y: dates.map(() => baselineLower),
+    line: { width: 0, color: 'transparent' },
+    showlegend: false,
+    hoverinfo: 'none',
+  };
+
+  // Trace 2: Upper bound of corridor + Shaded fill
+  const traceCorridor = {
+    type: 'scatter',
+    mode: 'lines',
+    name: 'Normal baseline corridor',
+    x: dates,
+    y: dates.map(() => baselineUpper),
+    fill: 'tonexty',
+    fillcolor: 'rgba(56, 189, 248, 0.12)',
+    line: { color: 'rgba(56, 189, 248, 0.5)', width: 1.5, dash: 'dot' },
+    hovertemplate: `<b>Normal Baseline Corridor</b><br>• Range: ${baselineLower.toFixed(2)} – ${baselineUpper.toFixed(2)} MB<br>• Typical daily mean: ~${baselineMean.toFixed(2)} MB<extra></extra>`,
+  };
+
+  // Trace 3: Observed Outbound Volume
+  const traceObserved = {
     type: 'scatter',
     mode: 'lines+markers',
-    name: 'Observed Outbound',
-    x: sorted.map(d => d.date),
-    y: sorted.map(d => d.total_bytes_out),
-    line: { color: '#3b82f6', width: 2.5, shape: 'spline' },
-    marker: { size: 5, color: '#60a5fa' },
-    fill: 'tozeroy',
-    fillcolor: 'rgba(59, 130, 246, 0.08)',
-    hovertemplate: '<b>%{x}</b><br>Outbound: %{y:,.0f} bytes<extra></extra>',
+    name: 'Observed data sent',
+    x: dates,
+    y: mbValues,
+    line: { color: '#0072b2', width: 2.2 },
+    marker: { size: 6, color: '#38bdf8', symbol: 'circle', line: { color: '#ffffff', width: 1 } },
+    customdata: sorted.map((d, i) => {
+      const mb = mbValues[i];
+      const bytes = d.total_bytes_out || 0;
+      const isSpike = mb > baselineUpper;
+      const mult = (mb / Math.max(baselineMean, 0.01)).toFixed(1);
+      return [
+        bytes.toLocaleString(),
+        isSpike ? `🚨 Spike (${mult}x normal)` : '✓ Inside normal range',
+        baselineMean.toFixed(2),
+      ];
+    }),
+    hovertemplate:
+      '<b>Date: %{x}</b><br>' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>' +
+      '• <b>Data sent out:</b> %{y:.2f} MB (%{customdata[0]} bytes)<br>' +
+      '• <b>Assessment:</b> %{customdata[1]}<br>' +
+      '• <b>Typical baseline:</b> ~%{customdata[2]} MB<br>' +
+      '<extra></extra>',
   };
+
+  const traces = [traceLower, traceCorridor, traceObserved];
+
+  // Trace 4: Marked Spikes Above Baseline (if any)
+  if (spikeIndices.length > 0) {
+    traces.push({
+      type: 'scatter',
+      mode: 'markers+text',
+      name: 'Spike above baseline',
+      x: spikeIndices.map(i => dates[i]),
+      y: spikeIndices.map(i => mbValues[i]),
+      marker: {
+        size: 10,
+        color: '#d55e00',
+        symbol: 'diamond',
+        line: { color: '#ffffff', width: 1.5 },
+      },
+      text: spikeLabels,
+      textposition: 'top center',
+      textfont: { size: 11, color: '#fca5a5', family: 'Inter, sans-serif', weight: 700 },
+      hoverinfo: 'skip',
+    });
+  }
+
+  const maxY = Math.max(...mbValues, baselineUpper * 1.3);
 
   const layout = {
     ...PLOTLY_LAYOUT,
-    height: 280,
+    height: 310,
+    margin: { t: 25, b: 60, l: 80, r: 25 },
+    legend: {
+      orientation: 'h',
+      x: 0,
+      y: -0.28,
+      font: { size: 11, color: '#f1f5f9' },
+    },
+    xaxis: {
+      ...PLOTLY_LAYOUT.xaxis,
+      title: { text: 'Date', font: { size: 12, color: '#f8fafc', weight: 600 } },
+      tickfont: { size: 11, color: '#e2e8f0' },
+      showgrid: false,
+    },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
-      title: { text: 'Bytes Out', font: { size: 10, color: '#64748b' } },
-      tickformat: '~s',
+      range: [0, maxY * 1.15],
+      ticksuffix: ' MB',
+      title: { text: 'Data sent out (MB)', font: { size: 12, color: '#f8fafc', weight: 600 }, standoff: 15 },
+      tickfont: { size: 11, color: '#e2e8f0' },
+      showgrid: true,
+      gridcolor: 'rgba(255,255,255,0.06)',
     },
   };
 
-  Plotly.newPlot('chart-user-volume', [trace], layout, PLOTLY_CONFIG);
+  Plotly.purge('chart-user-volume');
+  Plotly.newPlot('chart-user-volume', traces, layout, PLOTLY_CONFIG);
 }
 
 function renderUserHourly(hourly) {
@@ -953,50 +1216,127 @@ function renderUserHourly(hourly) {
     return;
   }
 
-  // Use integer hour indices (0–23) as x so Plotly treats them as category, not datetime
   const hourIndices = Array.from({ length: 24 }, (_, i) => i);
-  const hourLabels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+  const hour12Labels = [
+    '12 AM', '1 AM', '2 AM', '3 AM', '4 AM', '5 AM',
+    '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM',
+    '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM',
+    '6 PM', '7 PM', '8 PM', '9 PM', '10 PM', '11 PM'
+  ];
+
   const counts = Array.from({ length: 24 }, (_, i) => {
     const found = hourly.find(h => h.hour === i);
     return found ? found.count : 0;
   });
 
-  const barColors = counts.map((_, i) => (i >= 19 || i < 7) ? '#f43f5e' : '#3b82f6');
+  const totalFlows = counts.reduce((a, b) => a + b, 0);
+  const afterHoursFlows = counts.reduce((acc, c, i) => (i >= 19 || i < 7) ? acc + c : acc, 0);
+  const maxCount = Math.max(...counts, 1);
+  const peakHourIdx = counts.indexOf(maxCount);
+  const peakHour12 = hour12Labels[peakHourIdx];
 
-  const trace = {
+  // Dynamic Takeaway generation
+  const takeawayEl = document.getElementById('takeaway-text-user-hourly');
+  const srEl = document.getElementById('sr-user-hourly');
+  if (afterHoursFlows > 0) {
+    const pct = Math.round((afterHoursFlows / Math.max(totalFlows, 1)) * 100);
+    const takeawayText = `<strong>${afterHoursFlows} connections (${pct}%)</strong> occurred during after-hours (7 PM – 7 AM UTC), peaking at <strong>${peakHour12} UTC</strong>.`;
+    if (takeawayEl) takeawayEl.innerHTML = takeawayText;
+    if (srEl) srEl.textContent = `Activity by Hour: ${afterHoursFlows} connections occurred during after-hours (7 PM to 7 AM UTC), with peak activity at ${peakHour12} UTC.`;
+  } else {
+    const takeawayText = `All <strong>${totalFlows} connections</strong> occurred during standard daytime business hours (7 AM – 7 PM UTC), peaking at ${peakHour12} UTC.`;
+    if (takeawayEl) takeawayEl.innerHTML = takeawayText;
+    if (srEl) srEl.textContent = `Activity by Hour: All ${totalFlows} connections occurred during standard daytime business hours, peaking at ${peakHour12} UTC.`;
+  }
+
+  // Split into daytime and after-hours bars for clear dual-coded legend
+  const daytimeCounts = counts.map((c, i) => (i >= 7 && i < 19) ? c : 0);
+  const afterHoursCounts = counts.map((c, i) => (i >= 19 || i < 7) ? c : 0);
+
+  const traceDaytime = {
     type: 'bar',
-    x: hourIndices,      // numeric 0-23 so Plotly does NOT parse as timestamps
-    y: counts,
-    text: hourLabels,    // shown on hover via customdata
-    customdata: hourLabels,
+    name: 'Daytime (7 AM – 7 PM)',
+    x: hourIndices,
+    y: daytimeCounts,
     marker: {
-      color: barColors,
-      line: { color: 'rgba(255,255,255,0.1)', width: 1 },
+      color: '#0284c7', // Ocean Blue
+      line: { color: 'rgba(255,255,255,0.2)', width: 1 },
     },
-    hovertemplate: '<b>%{customdata}</b><br>%{y} flows<extra></extra>',
+    customdata: hourIndices.map(i => [
+      hour12Labels[i],
+      `${String(i).padStart(2, '0')}:00 UTC`,
+      'Daytime Business Hours (Normal)',
+      totalFlows > 0 ? `${Math.round((counts[i] / totalFlows) * 100)}%` : '0%',
+    ]),
+    hovertemplate:
+      '<b>%{customdata[0]} (%{customdata[1]})</b><br>' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>' +
+      '• <b>Connections:</b> %{y} network flows (%{customdata[3]} of daily activity)<br>' +
+      '• <b>Window:</b> %{customdata[2]}<br>' +
+      '<extra></extra>',
+  };
+
+  const traceAfterHours = {
+    type: 'bar',
+    name: 'After-hours (7 PM – 7 AM)',
+    x: hourIndices,
+    y: afterHoursCounts,
+    marker: {
+      color: '#d55e00', // Vermilion / Red-Orange
+      pattern: {
+        shape: '/',
+        fillmode: 'overlay',
+        fgcolor: 'rgba(255,255,255,0.45)',
+        size: 6,
+      },
+      line: { color: 'rgba(255,255,255,0.35)', width: 1.2 },
+    },
+    customdata: hourIndices.map(i => [
+      hour12Labels[i],
+      `${String(i).padStart(2, '0')}:00 UTC`,
+      '🚨 After-Hours Window (Closed Office)',
+      totalFlows > 0 ? `${Math.round((counts[i] / totalFlows) * 100)}%` : '0%',
+    ]),
+    hovertemplate:
+      '<b>%{customdata[0]} (%{customdata[1]})</b><br>' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>' +
+      '• <b>Connections:</b> %{y} network flows (%{customdata[3]} of daily activity)<br>' +
+      '• <b>Window:</b> %{customdata[2]}<br>' +
+      '<extra></extra>',
   };
 
   const layout = {
     ...PLOTLY_LAYOUT,
-    height: 280,
+    height: 310,
+    barmode: 'stack',
+    margin: { t: 25, b: 60, l: 65, r: 25 },
+    legend: {
+      orientation: 'h',
+      x: 0,
+      y: -0.28,
+      font: { size: 11, color: '#f1f5f9' },
+    },
     xaxis: {
       ...PLOTLY_LAYOUT.xaxis,
-      // Force category so 0-23 render as discrete hour labels
       type: 'category',
       tickmode: 'array',
-      tickvals: hourIndices,
-      ticktext: hourLabels,
-      tickangle: -45,
-      title: { text: 'Hour of Day (24h UTC)', font: { size: 10, color: '#64748b' } },
-      // Show every 3 hours to keep it readable
-      dtick: 3,
+      tickvals: [0, 3, 6, 9, 12, 15, 18, 21],
+      ticktext: ['12 AM', '3 AM', '6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM'],
+      tickangle: 0, // Strictly horizontal labels
+      title: { text: 'Time of Day (UTC, 12-Hour AM/PM Format)', font: { size: 12, color: '#f8fafc', weight: 600 } },
+      tickfont: { size: 11, color: '#e2e8f0' },
+      showgrid: false,
     },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
-      title: { text: 'Flows', font: { size: 10, color: '#64748b' } },
+      title: { text: 'Connections (Flows)', font: { size: 12, color: '#f8fafc', weight: 600 } },
+      tickfont: { size: 11, color: '#e2e8f0' },
+      ticksuffix: ' flows',
+      showgrid: true,
+      gridcolor: 'rgba(255,255,255,0.06)',
     },
     shapes: [
-      // After-hours shade: 19:00–23:00 (indices 19–23)
+      // Evening after-hours shade: 19:00 - 24:00 (indices 18.5 - 23.5)
       {
         type: 'rect',
         xref: 'x',
@@ -1005,10 +1345,10 @@ function renderUserHourly(hourly) {
         y0: 0,
         y1: 1,
         yref: 'paper',
-        fillcolor: 'rgba(244, 63, 94, 0.08)',
+        fillcolor: 'rgba(213, 94, 0, 0.10)',
         line: { width: 0 },
       },
-      // After-hours shade: 00:00–06:00 (indices 0–6)
+      // Morning after-hours shade: 00:00 - 07:00 (indices -0.5 - 6.5)
       {
         type: 'rect',
         xref: 'x',
@@ -1017,97 +1357,250 @@ function renderUserHourly(hourly) {
         y0: 0,
         y1: 1,
         yref: 'paper',
-        fillcolor: 'rgba(244, 63, 94, 0.08)',
+        fillcolor: 'rgba(213, 94, 0, 0.10)',
         line: { width: 0 },
       },
     ],
     annotations: [
       {
         xref: 'paper',
-        x: 0.92,
+        x: 0.98,
         y: 1,
         yref: 'paper',
-        text: 'After-Hours Window',
+        text: 'After hours (7 PM - 7 AM)',
         showarrow: false,
-        font: { size: 9, color: '#f43f5e' },
+        font: { size: 10, color: '#ffffff', weight: 600, family: 'Inter, sans-serif' },
+        bgcolor: '#d55e00',
+        bordercolor: '#fca5a5',
+        borderpad: 4,
+        xanchor: 'right',
+        yshift: 12,
       },
     ],
   };
 
   Plotly.purge(el);
-  Plotly.newPlot(el, [trace], layout, PLOTLY_CONFIG);
+  Plotly.newPlot(el, [traceDaytime, traceAfterHours], layout, PLOTLY_CONFIG);
 }
 
 function renderUserZscore(dailyFeatures) {
+  const container = document.getElementById('chart-user-zscore');
+  if (!container || !dailyFeatures || !dailyFeatures.length) {
+    if (container) showEmpty(container, 'No baseline deviation data available for this user.');
+    return;
+  }
+
   const sorted = [...dailyFeatures].sort((a, b) => a.date.localeCompare(b.date));
-  const zCols = [
-    ['total_bytes_out_z_self', 'Bytes Out Z-Score', '#3b82f6'],
-    ['total_flows_z_self', 'Flows Z-Score', '#f97316'],
-    ['unique_destinations_z_self', 'Unique Dst Z-Score', '#8b5cf6'],
-    ['after_hours_ratio_z_self', 'After-Hours Z-Score', '#f43f5e'],
+  const dates = sorted.map(d => d.date);
+
+  // Four metrics with plain-language names, distinct colorblind-safe colors, and unique dash styles/markers
+  const metricConfigs = [
+    {
+      col: 'total_bytes_out_z_self',
+      name: 'Data sent',
+      color: '#0072b2', // Dark Blue
+      dash: 'solid',
+      symbol: 'circle',
+    },
+    {
+      col: 'total_flows_z_self',
+      name: 'Number of connections',
+      color: '#e69f00', // Amber
+      dash: 'dash',
+      symbol: 'square',
+    },
+    {
+      col: 'unique_destinations_z_self',
+      name: 'New destinations',
+      color: '#882255', // Deep Maroon / Purple
+      dash: 'dot',
+      symbol: 'diamond',
+    },
+    {
+      col: 'after_hours_ratio_z_self',
+      name: 'After-hours activity',
+      color: '#06b6d4', // Vibrant Cyan (distinct from red critical line!)
+      dash: 'dashdot',
+      symbol: 'triangle-up',
+    },
   ];
 
-  const traces = zCols.map(([col, name, color]) => ({
+  // Turn OFF spline smoothing: use 'linear' mode to connect real data points only
+  const traces = metricConfigs.map(m => ({
     type: 'scatter',
     mode: 'lines+markers',
-    x: sorted.map(d => d.date),
-    y: sorted.map(d => d[col] || 0),
-    name: name,
-    line: { width: 1.8, color: color, shape: 'spline' },
-    marker: { size: 4 },
+    name: m.name,
+    x: dates,
+    y: sorted.map(d => {
+      const val = d[m.col];
+      return (val !== undefined && val !== null && val !== '') ? Number(val) : 0;
+    }),
+    line: {
+      width: 2.2,
+      color: m.color,
+      dash: m.dash,
+      shape: 'linear', // REAL POINTS CONNECTED DIRECTLY (NO SPLINE)
+    },
+    marker: { size: 6, symbol: m.symbol, color: m.color, line: { color: '#ffffff', width: 1 } },
+    customdata: sorted.map(d => {
+      const val = Number(d[m.col] || 0);
+      let assessment = 'Normal baseline range';
+      if (val >= 3.0) assessment = '🚨 Very unusual (critical alert threshold breached)';
+      else if (val >= 2.0) assessment = '⚠️ Unusual (warning threshold breached)';
+      else if (val <= -2.0) assessment = 'Significantly below normal';
+      return [m.name, assessment];
+    }),
+    hovertemplate:
+      '<b>%{customdata[0]}</b><br>' +
+      '• Date: <b>%{x}</b><br>' +
+      '• Departure from normal: <b>+%{y:.2f} points</b><br>' +
+      '• Assessment: %{customdata[1]}<br>' +
+      '<extra></extra>',
   }));
+
+  // Dynamic Takeaway generation
+  let maxDev = -Infinity;
+  let maxDate = '';
+  let maxMetric = '';
+  metricConfigs.forEach(m => {
+    sorted.forEach(d => {
+      const val = Number(d[m.col] || 0);
+      if (val > maxDev) {
+        maxDev = val;
+        maxDate = d.date;
+        maxMetric = m.name;
+      }
+    });
+  });
+
+  const takeawayEl = document.getElementById('takeaway-text-user-zscore');
+  const srEl = document.getElementById('sr-user-zscore');
+  if (maxDev >= 2.0 && maxDate) {
+    const dateParts = maxDate.split('-');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthStr = monthNames[parseInt(dateParts[1], 10) - 1] || dateParts[1];
+    const dayStr = parseInt(dateParts[2], 10);
+    const zoneName = maxDev >= 3.0 ? 'Very Unusual' : 'Unusual';
+
+    const takeawayText = `<strong>${monthStr} ${dayStr}</strong> <strong>${maxMetric}</strong> surged to <strong>+${maxDev.toFixed(1)}</strong> points above normal, entering the <strong>${zoneName}</strong> zone.`;
+    if (takeawayEl) takeawayEl.innerHTML = takeawayText;
+    if (srEl) srEl.textContent = `Baseline Deviation Z-Scores: On ${monthStr} ${dayStr}, ${maxMetric} deviated by ${maxDev.toFixed(1)} points above normal baseline (${zoneName} level).`;
+  } else {
+    const takeawayText = `All behavioral metrics remained within expected statistical ranges (< 2.0 departures from normal baseline).`;
+    if (takeawayEl) takeawayEl.innerHTML = takeawayText;
+    if (srEl) srEl.textContent = `Baseline Deviation Z-Scores: All metrics remained within normal expected range.`;
+  }
+
+  // Calculate y bounds (accommodate extreme spikes e.g. 66+ or at least 4.5)
+  const allY = traces.flatMap(t => t.y);
+  const highestY = Math.max(...allY, 3.5);
+  const lowestY = Math.min(...allY, 0);
+  const yUpper = Math.max(4.5, highestY * 1.1);
+  const yLower = Math.min(-1, lowestY - 0.5);
 
   const layout = {
     ...PLOTLY_LAYOUT,
-    height: 270,
+    height: 320,
+    margin: { t: 25, b: 60, l: 75, r: 25 },
+    legend: {
+      orientation: 'h',
+      x: 0,
+      y: -0.28,
+      font: { size: 11, color: '#f1f5f9' },
+    },
+    xaxis: {
+      ...PLOTLY_LAYOUT.xaxis,
+      title: { text: 'Timeline (Date)', font: { size: 12, color: '#f8fafc', weight: 600 } },
+      tickfont: { size: 11, color: '#e2e8f0' },
+      showgrid: false,
+    },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
-      title: { text: 'Deviation (σ)', font: { size: 10, color: '#64748b' } },
+      range: [yLower, yUpper],
+      title: {
+        text: 'Deviation from Normal (0 = normal, +2 = unusual)',
+        font: { size: 12, color: '#f8fafc', weight: 600 },
+        standoff: 15,
+      },
+      tickfont: { size: 11, color: '#e2e8f0' },
+      showgrid: true,
+      gridcolor: 'rgba(255,255,255,0.06)',
     },
     shapes: [
+      // Shaded Area between +2 and +3 (Yellow / Warning: Unusual)
       {
-        type: 'line',
+        type: 'rect',
+        xref: 'paper',
         x0: 0,
         x1: 1,
+        y0: 2,
+        y1: 3,
+        fillcolor: 'rgba(245, 158, 11, 0.08)',
+        line: { width: 0 },
+      },
+      // Shaded Area above +3 (Red / Critical: Very Unusual)
+      {
+        type: 'rect',
         xref: 'paper',
+        x0: 0,
+        x1: 1,
+        y0: 3,
+        y1: yUpper,
+        fillcolor: 'rgba(220, 38, 38, 0.12)',
+        line: { width: 0 },
+      },
+      // Warning line (+2)
+      {
+        type: 'line',
+        xref: 'paper',
+        x0: 0,
+        x1: 1,
         y0: 2,
         y1: 2,
-        line: { color: 'rgba(234, 179, 8, 0.6)', dash: 'dash', width: 1.2 },
+        line: { color: '#f59e0b', dash: 'dash', width: 1.8 },
       },
+      // Critical line (+3)
       {
         type: 'line',
+        xref: 'paper',
         x0: 0,
         x1: 1,
-        xref: 'paper',
         y0: 3,
         y1: 3,
-        line: { color: 'rgba(244, 63, 94, 0.6)', dash: 'dash', width: 1.2 },
+        line: { color: '#dc2626', dash: 'longdash', width: 2.2 },
       },
     ],
     annotations: [
       {
-        x: 1,
         xref: 'paper',
+        x: 0.98,
         y: 2,
-        text: 'Warning (+2.0σ)',
+        text: 'Warning: unusual for this user (+2)',
         showarrow: false,
-        font: { size: 9, color: '#eab308', family: 'JetBrains Mono' },
+        font: { size: 10, color: '#ffffff', weight: 600, family: 'Inter, sans-serif' },
+        bgcolor: '#d97706',
+        bordercolor: '#fde68a',
+        borderpad: 4,
         xanchor: 'right',
-        yshift: 10,
+        yshift: 11,
       },
       {
-        x: 1,
         xref: 'paper',
+        x: 0.98,
         y: 3,
-        text: 'Critical (+3.0σ)',
+        text: 'Critical: very unusual for this user (+3)',
         showarrow: false,
-        font: { size: 9, color: '#f43f5e', family: 'JetBrains Mono' },
+        font: { size: 10, color: '#ffffff', weight: 600, family: 'Inter, sans-serif' },
+        bgcolor: '#dc2626',
+        bordercolor: '#fca5a5',
+        borderpad: 4,
         xanchor: 'right',
-        yshift: 10,
+        yshift: 11,
       },
     ],
   };
 
+  Plotly.purge('chart-user-zscore');
   Plotly.newPlot('chart-user-zscore', traces, layout, PLOTLY_CONFIG);
 }
 
@@ -2372,7 +2865,42 @@ async function toggleChartNames() {
 
 function renderRiskBarChartWithLabels(sorted, labelMap) {
   /** Variant of renderRiskBarChart that uses real-name labels on the x-axis. */
-  const colors = sorted.map(u => SEVERITY_COLORS[u.severity] || SEVERITY_COLORS.info);
+  const getRiskColor = (severity) => {
+    switch (severity) {
+      case 'critical':
+      case 'high':
+        return '#d55e00'; // Vermilion
+      case 'medium':
+        return '#e69f00'; // Amber
+      case 'low':
+        return '#0284c7'; // Blue
+      default:
+        return '#64748b'; // Slate
+    }
+  };
+
+  const getRiskPattern = (severity) => {
+    switch (severity) {
+      case 'critical':
+      case 'high':
+        return '/';
+      case 'medium':
+        return '.';
+      default:
+        return '';
+    }
+  };
+
+  const colors = sorted.map(u => getRiskColor(u.severity));
+  const patterns = sorted.map(u => getRiskPattern(u.severity));
+
+  // Update takeaway text with revealed real names
+  const takeawayEl = document.getElementById('risk-chart-takeaway-text');
+  if (takeawayEl && sorted.length > 0) {
+    const topUser = sorted[0];
+    const realLabel = (labelMap[topUser.user_id] || topUser.user_id).replace('\n', ' ');
+    takeawayEl.innerHTML = `<strong>${realLabel}</strong> is the only account crossing the High Risk threshold (Score: <strong>${topUser.risk_score.toFixed(1)} pts</strong> with ${topUser.alert_count} alerts) and requires immediate SOC investigation. All other accounts remain in safe monitoring ranges.`;
+  }
 
   const trace = {
     type: 'bar',
@@ -2380,48 +2908,79 @@ function renderRiskBarChartWithLabels(sorted, labelMap) {
     y: sorted.map(u => u.risk_score),
     marker: {
       color: colors,
-      line: { color: 'rgba(255,255,255,0.15)', width: 1 },
+      pattern: {
+        shape: patterns,
+        fillmode: 'overlay',
+        fgcolor: 'rgba(255, 255, 255, 0.45)',
+        size: 7,
+      },
+      line: { color: 'rgba(255, 255, 255, 0.35)', width: 1.5 },
     },
-    text: sorted.map(u => `${u.risk_score.toFixed(1)}`),
+    text: sorted.map(u => `${u.risk_score.toFixed(1)} pts<br><b>${u.severity.toUpperCase()}</b>`),
     textposition: 'outside',
-    textfont: { family: 'JetBrains Mono, monospace', size: 10, color: '#94a3b8' },
+    textfont: { family: 'Inter, sans-serif', size: 11, color: '#ffffff', weight: 600 },
     customdata: sorted.map(u => [
       u.user_id,
       u.severity.toUpperCase(),
       u.alert_count,
-      (labelMap[u.user_id] || u.user_id).split('\n')[0], // real name line
+      (labelMap[u.user_id] || u.user_id).split('\n')[0],
+      u.risk_score >= 60 ? '🚨 EXCEEDS THRESHOLD (+ ' + (u.risk_score - 60).toFixed(1) + ' pts)' : '✓ Below High Risk Threshold',
+      u.risk_score >= 60 ? 'Immediate containment & forensic review required' : 'Standard automated monitoring',
     ]),
     hovertemplate:
-      '<b>%{customdata[3]}</b> <span style="opacity:0.6">%{customdata[0]}</span>' +
-      '<br>Risk Score: %{y:.1f}' +
-      '<br>Severity: %{customdata[1]}' +
-      '<br>Alerts: %{customdata[2]}' +
+      '<span style="font-size:14px;font-weight:700;color:#38bdf8;">Employee: %{customdata[3]}</span> <span style="opacity:0.8;font-size:12px;">(%{customdata[0]})</span><br>' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>' +
+      '• <b>Threat Risk Score:</b> %{y:.2f} / 100 points<br>' +
+      '• <b>Severity Level:</b> %{customdata[1]} Risk<br>' +
+      '• <b>Security Alerts:</b> %{customdata[2]} anomalous events<br>' +
+      '• <b>Threshold Check:</b> %{customdata[4]}<br>' +
+      '• <b>Recommended Action:</b> %{customdata[5]}<br>' +
+      '<span style="font-size:11px;color:#94a3b8;margin-top:4px;">👆 Click or tap bar to inspect user timeline & network flows</span>' +
       '<extra></extra>',
   };
 
   const layout = {
     ...PLOTLY_LAYOUT,
-    height: 290,
+    height: 350,
+    margin: { t: 30, b: 75, l: 75, r: 35 },
     xaxis: {
       ...PLOTLY_LAYOUT.xaxis,
       type: 'category',
-      tickangle: -25,
-      tickfont: { size: 9, color: '#c4b5fd', family: 'JetBrains Mono, monospace' },
+      tickangle: -20,
+      title: {
+        text: 'Employee Identity (Real Name & Pseudonym)',
+        font: { size: 13, color: '#f8fafc', family: 'Inter, sans-serif' },
+        standoff: 14,
+      },
+      tickfont: { size: 11, color: '#e2e8f0', family: 'Inter, sans-serif' },
+      showgrid: false,
     },
     yaxis: {
       ...PLOTLY_LAYOUT.yaxis,
-      range: [0, 90],
-      title: { text: 'Risk Score (0-100)', font: { size: 10, color: '#64748b' } },
+      range: [0, 100],
+      dtick: 20,
+      ticksuffix: ' pts',
+      title: {
+        text: 'Threat Risk Score (Points, 0–100 Scale)',
+        font: { size: 13, color: '#f8fafc', family: 'Inter, sans-serif' },
+        standoff: 14,
+      },
+      tickfont: { size: 12, color: '#e2e8f0', family: 'Inter, sans-serif' },
+      showgrid: true,
+      gridcolor: 'rgba(255,255,255,0.08)',
+      zeroline: true,
+      zerolinecolor: 'rgba(255,255,255,0.15)',
     },
     shapes: [{
       type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 60, y1: 60,
-      line: { color: 'rgba(249,115,22,0.45)', dash: 'dash', width: 1.5 },
+      line: { color: '#ef4444', dash: 'dash', width: 2 },
     }],
     annotations: [{
-      xref: 'paper', x: 1, y: 60, text: 'High Risk (60.0)',
+      xref: 'paper', x: 0.98, y: 60, text: '▲ High-Risk Action Threshold (60.0 pts)',
       showarrow: false,
-      font: { size: 9, color: '#f97316', family: 'JetBrains Mono' },
-      xanchor: 'right', yshift: 10,
+      font: { size: 11, color: '#ffffff', family: 'Inter, sans-serif', weight: 600 },
+      bgcolor: '#d55e00', bordercolor: '#fca5a5', borderwidth: 1, borderpad: 4,
+      xanchor: 'right', yshift: 14,
     }],
   };
 
@@ -2432,9 +2991,11 @@ function renderRiskBarChartWithLabels(sorted, labelMap) {
   document.getElementById('chart-risk-bar').on('plotly_click', (data) => {
     if (data.points?.length) {
       // Recover the pseudo_id from customdata since x is now the real name
-      const pseudoId = data.points[0].customdata[0];
-      appState.currentUser = pseudoId;
-      switchPage('users');
+      const pseudoId = data.points[0].customdata?.[0];
+      if (pseudoId) {
+        appState.currentUser = pseudoId;
+        switchPage('users');
+      }
     }
   });
 }
