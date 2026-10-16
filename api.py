@@ -3,12 +3,13 @@ InsiderLens - FastAPI Backend
 REST API for the InsiderLens platform.
 """
 import json
+import secrets
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Optional, List, Dict
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -102,9 +103,18 @@ class RevealResponse(BaseModel):
     message: str
 
 
-class AdminRevealRequest(BaseModel):
-    pseudo_id: Optional[str] = None
+class AdminSessionRequest(BaseModel):
+    """Request model for creating an admin session token."""
     password: str
+    requester: Optional[str] = "SOC Admin"
+
+
+class AdminRevealRequest(BaseModel):
+    """Request model for per-user identity reveal using a session token.
+    Password is NEVER sent again after the initial session creation.
+    """
+    pseudo_id: str                         # Always required — no bulk reveal
+    session_token: str                     # Short-lived token from /api/admin/session
     justification: Optional[str] = ""
     requester: Optional[str] = "SOC Admin"
 
@@ -449,9 +459,40 @@ USER_IDENTITY_DB = {
 
 VALID_ADMIN_PASSWORDS = {"admin", "admin123", "insiderlens", "password", "root"}
 
-@app.post("/api/admin/reveal")
-def admin_reveal(request: AdminRevealRequest):
-    """Admin-only endpoint to access real identity details protected by password."""
+# ── Admin session store ────────────────────────────────────────────────
+# Maps session_token -> expiry datetime. Stored in process memory only.
+# No PII is stored here — tokens are opaque UUIDs.
+_admin_sessions: Dict[str, datetime] = {}
+SESSION_TTL_HOURS = 1
+
+
+def _purge_expired_sessions():
+    """Remove expired session tokens from the in-memory store."""
+    now = datetime.now()
+    expired = [t for t, exp in _admin_sessions.items() if now > exp]
+    for t in expired:
+        del _admin_sessions[t]
+
+
+def _validate_session(token: str) -> bool:
+    """Return True if the token is valid and not expired."""
+    _purge_expired_sessions()
+    if token not in _admin_sessions:
+        return False
+    if datetime.now() > _admin_sessions[token]:
+        del _admin_sessions[token]
+        return False
+    return True
+
+
+@app.post("/api/admin/session")
+def create_admin_session(request: AdminSessionRequest):
+    """
+    Step 1 of the gated identity reveal flow.
+    Validates the admin password and returns a short-lived session token.
+    The password is NEVER stored or returned — only an opaque token.
+    No identity data is returned here.
+    """
     import os
     env_pw = os.getenv("ADMIN_PASSWORD")
     valid_pws = set(VALID_ADMIN_PASSWORDS)
@@ -459,47 +500,103 @@ def admin_reveal(request: AdminRevealRequest):
         valid_pws.add(env_pw)
 
     if request.password not in valid_pws:
-        log_audit(request.requester, "Admin Authentication", request.pseudo_id or "System", "Denied: Incorrect Password")
+        log_audit(
+            request.requester,
+            "Admin Session Creation",
+            "SOC Environment",
+            "DENIED: Incorrect password",
+        )
         raise HTTPException(status_code=401, detail="Invalid admin password.")
 
-    if not request.pseudo_id:
-        log_audit(request.requester, "Admin Session Unlocked", "Full SOC Environment", "Success: Admin Authorized")
-        return {
-            "status": "authorized",
-            "message": "Admin privileges granted.",
-            "identities": USER_IDENTITY_DB
-        }
+    _purge_expired_sessions()
+    token = secrets.token_urlsafe(40)  # 320-bit cryptographically random token
+    _admin_sessions[token] = datetime.now() + timedelta(hours=SESSION_TTL_HOURS)
 
-    pid = request.pseudo_id.upper()
-    identity = USER_IDENTITY_DB.get(pid)
-    if not identity:
-        # Fallback for dynamic users
-        identity = {
-            "name": f"User {pid}",
-            "employee_id": f"EMP-{hash(pid) % 9000 + 1000}",
-            "email": f"{pid.lower()}@acme-corp.internal",
-            "department": "Engineering",
-            "role": "Employee",
-            "ip": "10.0.0.x",
-            "device": "WORKSTATION",
-            "clearance": "Level 2 - Confidential",
-            "hr_status": "Active"
-        }
-
-    justification_str = request.justification.strip() if request.justification else "Direct Admin Access"
     log_audit(
         request.requester,
-        "Admin Identity Reveal",
-        f"{pid} -> {identity['name']} ({identity['employee_id']})",
-        f"Success: {justification_str}"
+        "Admin Session Created",
+        "SOC Environment",
+        f"Token issued. Expires in {SESSION_TTL_HOURS}h. Active sessions: {len(_admin_sessions)}",
     )
     return {
-        "status": "success",
-        "pseudo_id": pid,
-        "identity": identity
+        "status": "authorized",
+        "session_token": token,
+        "expires_in_seconds": SESSION_TTL_HOURS * 3600,
+        # Deliberately no identity data returned here
     }
 
 
+@app.post("/api/admin/reveal")
+def admin_reveal(request: AdminRevealRequest):
+    """
+    Step 2 of the gated identity reveal flow.
+    Requires a valid session token AND a specific pseudo_id.
+    Returns ONLY that user's identity — no bulk reveal is possible.
+    Every call is individually audited.
+    """
+    # Validate session token — no password re-transmission needed
+    if not _validate_session(request.session_token):
+        log_audit(
+            request.requester,
+            "Admin Identity Reveal",
+            request.pseudo_id,
+            "DENIED: Invalid or expired session token",
+        )
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired admin session. Please re-authenticate.",
+        )
+
+    pid = request.pseudo_id.strip().upper()
+    if not pid:
+        raise HTTPException(status_code=400, detail="pseudo_id is required.")
+
+    identity = USER_IDENTITY_DB.get(pid)
+    if not identity:
+        # Check by employee_id, stripped U- / EMP- prefix, or exact name
+        normalized_target = pid.replace("EMP-", "").replace("U-", "").replace("USER-", "").strip()
+        for k, id_data in USER_IDENTITY_DB.items():
+            emp_id = id_data.get("employee_id", "").upper()
+            emp_num = emp_id.replace("EMP-", "").strip()
+            name_upper = id_data.get("name", "").upper()
+            if emp_id == pid or emp_num == normalized_target or name_upper == pid:
+                identity = id_data
+                break
+
+    if not identity:
+        # Fallback for dynamic user IDs not in the static DB
+        identity = {
+            "name": f"Unknown Subject ({pid})",
+            "employee_id": f"EMP-{abs(hash(pid)) % 9000 + 1000}",
+            "email": f"{pid.lower().replace('-', '.')}@acme-corp.internal",
+            "department": "Unknown",
+            "role": "Unknown",
+            "ip": "N/A",
+            "device": "N/A",
+            "clearance": "Unknown",
+            "hr_status": "Unknown",
+        }
+
+    justification_str = (request.justification or "").strip() or "On-demand admin reveal"
+    log_audit(
+        request.requester,
+        "Admin Identity Reveal",
+        f"{pid} → {identity['name']} ({identity['employee_id']})",
+        f"SUCCESS — {justification_str}",
+    )
+    # Return only this user's data. No other identities are included.
+    return {
+        "status": "success",
+        "pseudo_id": pid,
+        "identity": identity,
+    }
+
+
+@app.get("/api/admin/session/status")
+def admin_session_status(token: str):
+    """Check whether a session token is still valid (lightweight heartbeat)."""
+    valid = _validate_session(token)
+    return {"valid": valid}
 
 @app.get("/api/audit-log")
 def get_audit_log():

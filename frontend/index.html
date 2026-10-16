@@ -145,8 +145,13 @@
                 <span class="card-title">Risk Score by User</span>
                 <span class="card-subtitle">Ensemble behavioral anomaly rating (0 - 100)</span>
               </div>
-              <div class="card-actions">
+              <div class="card-actions" id="risk-chart-actions">
                 <span class="badge-subtle">High threshold: 60+</span>
+                <!-- Injected by JS when admin session is active -->
+                <button class="admin-lock-btn" id="chart-reveal-names-btn" style="display:none;" title="Toggle real names on chart">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  Reveal Names
+                </button>
               </div>
             </div>
             <div class="card-body flush">
@@ -662,7 +667,7 @@
     <div class="admin-modal-header">
       <div class="admin-lock-icon">&#x1F510;</div>
       <div class="admin-modal-title">Admin Authentication Required</div>
-      <div class="admin-modal-subtitle">Enter your admin password to reveal the real identity of the selected subject. This action is audited.</div>
+      <div class="admin-modal-subtitle">Enter your admin password to create a secure session. A short-lived token will be issued — your password is never transmitted again. All identity reveals are individually audited.</div>
     </div>
     <div class="admin-modal-body">
       <div class="admin-form-group">
